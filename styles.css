@@ -438,7 +438,116 @@ h2 {
 }
 
 .category-tools {
-  grid-template-columns: minmax(0, 1fr) 82px;
+  grid-template-columns: minmax(0, 1fr) 128px;
+}
+
+.category-field {
+  display: grid;
+  gap: 8px;
+}
+
+.category-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  max-height: 174px;
+  overflow-y: auto;
+  padding: 1px 2px 2px 0;
+  scrollbar-color: #3a4742 transparent;
+}
+
+.category-option {
+  --category-color: var(--teal);
+  min-width: 0;
+  flex: 1 1 116px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  border: 1px solid rgba(236, 241, 235, 0.08);
+  border-left-color: var(--category-color);
+  background: rgba(19, 24, 23, 0.82);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 850;
+  line-height: 1.15;
+  padding: 6px 9px;
+  text-align: left;
+}
+
+.category-option span:not(.swatch) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.category-option::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(236, 241, 235, 0.22);
+}
+
+.category-option.selected {
+  border-color: var(--category-color);
+  background:
+    linear-gradient(180deg, rgba(236, 241, 235, 0.08), rgba(127, 212, 198, 0.08)),
+    rgba(19, 24, 23, 0.92);
+  color: #f4f7f1;
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 241, 235, 0.06),
+    0 0 0 1px rgba(127, 212, 198, 0.10);
+}
+
+.category-option.selected::after {
+  background: var(--category-color);
+  box-shadow: 0 0 12px var(--category-color);
+}
+
+.category-option .swatch {
+  width: 16px;
+  height: 16px;
+}
+
+.category-color-control {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.category-color-preview {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(236, 241, 235, 0.18);
+  border-radius: 7px;
+  background: #2a9d8f;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.16),
+    0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.category-color-control input[type="color"] {
+  min-height: 40px;
+  padding: 3px;
+}
+
+.category-color-control input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.category-color-control input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 5px;
+}
+
+.category-color-value {
+  color: var(--teal-dark);
+  font-size: 0.76rem;
+  font-weight: 850;
+  line-height: 1;
 }
 
 .recurrence-detail {

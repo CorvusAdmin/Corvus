@@ -62,6 +62,7 @@ const els = {
   taskForm: document.querySelector("#taskForm"),
   taskTitle: document.querySelector("#taskTitle"),
   taskCategory: document.querySelector("#taskCategory"),
+  taskCategoryPicker: document.querySelector("#taskCategoryPicker"),
   taskEstimate: document.querySelector("#taskEstimate"),
   taskDue: document.querySelector("#taskDue"),
   taskRecurrence: document.querySelector("#taskRecurrence"),
@@ -70,6 +71,8 @@ const els = {
   categoryForm: document.querySelector("#categoryForm"),
   categoryName: document.querySelector("#categoryName"),
   categoryColor: document.querySelector("#categoryColor"),
+  categoryColorPreview: document.querySelector("#categoryColorPreview"),
+  categoryColorValue: document.querySelector("#categoryColorValue"),
   categoryList: document.querySelector("#categoryList"),
   scheduleList: document.querySelector("#scheduleList"),
   scheduleSubhead: document.querySelector("#scheduleSubhead"),
@@ -208,6 +211,10 @@ function bindEvents() {
     input.addEventListener("change", syncTaskRepeatUntil);
   });
 
+  els.taskCategoryPicker.addEventListener("click", handleCategoryPickerClick);
+  els.taskCategoryPicker.addEventListener("keydown", handleCategoryPickerKeydown);
+  els.categoryColor.addEventListener("input", renderCategoryColorPreview);
+
   els.unavailableForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const start = parseInputDate(els.blockStart.value);
@@ -257,7 +264,7 @@ function bindEvents() {
       recurrence,
       occurrenceIndex: index + 1,
       title: recurrence === "none" ? title : `${title} (${formatShortDate(occurrenceDue)})`,
-      categoryId: els.taskCategory.value,
+      categoryId: getValidCategoryId(els.taskCategory.value),
       estimateMinutes: roundedEstimate,
       due: occurrenceDue.toISOString(),
       notes: els.taskNotes.value.trim(),
@@ -281,14 +288,17 @@ function bindEvents() {
     const name = els.categoryName.value.trim();
     if (!name) return;
 
-    state.categories.push({
+    const category = {
       id: createId("cat"),
       name,
-      color: els.categoryColor.value || "#2a9d8f",
+      color: normalizeColor(els.categoryColor.value, "#2a9d8f"),
       locked: false,
-    });
+    };
+    state.categories.push(category);
     els.categoryForm.reset();
     els.categoryColor.value = "#2a9d8f";
+    els.taskCategory.value = category.id;
+    renderCategoryColorPreview();
     persistAndRender();
   });
 
@@ -482,7 +492,7 @@ function renderSaveNotice() {
 }
 
 function renderCategoryControls() {
-  const currentCategory = els.taskCategory.value;
+  const selectedCategory = getValidCategoryId(els.taskCategory.value);
   els.taskCategory.innerHTML = "";
   state.categories.forEach((category) => {
     const option = document.createElement("option");
@@ -490,21 +500,49 @@ function renderCategoryControls() {
     option.textContent = category.name;
     els.taskCategory.append(option);
   });
-  if (state.categories.some((category) => category.id === currentCategory)) {
-    els.taskCategory.value = currentCategory;
-  }
+  els.taskCategory.value = selectedCategory;
+  renderTaskCategoryPicker(selectedCategory);
 
   els.categoryList.innerHTML = "";
   state.categories.forEach((category) => {
     const chip = document.createElement("span");
     chip.className = "category-chip";
     chip.innerHTML = `
-      <span class="swatch" style="background:${escapeAttribute(category.color)}"></span>
+      <span class="swatch" style="background:${escapeAttribute(normalizeColor(category.color))}"></span>
       <span>${escapeHtml(category.name)}</span>
       ${category.locked ? "" : `<button class="chip-remove" type="button" data-category-delete="${escapeAttribute(category.id)}" title="Remove category">x</button>`}
     `;
     els.categoryList.append(chip);
   });
+  renderCategoryColorPreview();
+}
+
+function renderTaskCategoryPicker(selectedCategory) {
+  els.taskCategoryPicker.innerHTML = "";
+  state.categories.forEach((category) => {
+    const isSelected = category.id === selectedCategory;
+    const button = document.createElement("button");
+    const color = normalizeColor(category.color);
+    button.type = "button";
+    button.className = `category-option${isSelected ? " selected" : ""}`;
+    button.dataset.categorySelect = category.id;
+    button.style.setProperty("--category-color", color);
+    button.setAttribute("role", "radio");
+    button.setAttribute("aria-checked", String(isSelected));
+    button.tabIndex = isSelected ? 0 : -1;
+    button.innerHTML = `
+      <span class="swatch" style="background:${escapeAttribute(color)}"></span>
+      <span>${escapeHtml(category.name)}</span>
+    `;
+    els.taskCategoryPicker.append(button);
+  });
+}
+
+function renderCategoryColorPreview() {
+  const color = normalizeColor(els.categoryColor.value, "#2a9d8f");
+  els.categoryColor.value = color;
+  els.categoryColorPreview.style.background = color;
+  els.categoryColorValue.textContent = color.toUpperCase();
 }
 
 function renderUnavailable() {
@@ -847,11 +885,46 @@ function handleBlockClick(event) {
   }
 }
 
+function handleCategoryPickerClick(event) {
+  const selectId = event.target.closest("[data-category-select]")?.dataset.categorySelect;
+  if (!selectId) return;
+  selectTaskCategory(selectId);
+}
+
+function handleCategoryPickerKeydown(event) {
+  const navigationKeys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"];
+  if (!navigationKeys.includes(event.key)) return;
+
+  const buttons = [...els.taskCategoryPicker.querySelectorAll("[data-category-select]")];
+  if (!buttons.length) return;
+
+  const currentIndex = Math.max(0, buttons.findIndex((button) => button.getAttribute("aria-checked") === "true"));
+  let nextIndex = currentIndex;
+  if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = (currentIndex + 1) % buttons.length;
+  if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+  if (event.key === "Home") nextIndex = 0;
+  if (event.key === "End") nextIndex = buttons.length - 1;
+
+  event.preventDefault();
+  const nextId = buttons[nextIndex].dataset.categorySelect;
+  selectTaskCategory(nextId);
+  [...els.taskCategoryPicker.querySelectorAll("[data-category-select]")]
+    .find((button) => button.dataset.categorySelect === nextId)
+    ?.focus();
+}
+
+function selectTaskCategory(categoryId) {
+  const selectedCategory = getValidCategoryId(categoryId);
+  els.taskCategory.value = selectedCategory;
+  renderTaskCategoryPicker(selectedCategory);
+}
+
 function handleCategoryClick(event) {
   const deleteId = event.target.closest("[data-category-delete]")?.dataset.categoryDelete;
   if (!deleteId) return;
   state.categories = state.categories.filter((category) => category.id !== deleteId || category.locked);
   state.tasks = state.tasks.map((task) => task.categoryId === deleteId ? { ...task, categoryId: "other" } : task);
+  if (els.taskCategory.value === deleteId) els.taskCategory.value = getValidCategoryId("other");
   persistAndRender();
 }
 
@@ -1078,6 +1151,16 @@ function scrollToToday() {
 
 function getCategory(categoryId) {
   return state.categories.find((category) => category.id === categoryId) || state.categories.find((category) => category.id === "other") || defaultCategories.at(-1);
+}
+
+function getValidCategoryId(categoryId) {
+  if (state.categories.some((category) => category.id === categoryId)) return categoryId;
+  return state.categories.find((category) => category.id === "other")?.id || state.categories[0]?.id || "";
+}
+
+function normalizeColor(value, fallback = "#65726d") {
+  const color = String(value || "").trim();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : fallback;
 }
 
 function appendEmpty(parent, title, body) {

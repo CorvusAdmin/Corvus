@@ -163,10 +163,11 @@
             <input id="taskTitle" type="text" placeholder="Follow up on roof estimate" required>
           </label>
 
-          <label>
-            Category
-            <select id="taskCategory"></select>
-          </label>
+          <fieldset class="category-field">
+            <legend>Category</legend>
+            <select id="taskCategory" hidden aria-hidden="true" tabindex="-1"></select>
+            <div id="taskCategoryPicker" class="category-picker" role="radiogroup" aria-label="Task category"></div>
+          </fieldset>
 
           <div class="two-column">
             <label>
@@ -217,7 +218,11 @@
             </label>
             <label>
               Color
-              <input id="categoryColor" type="color" value="#2a9d8f">
+              <span class="category-color-control">
+                <span id="categoryColorPreview" class="category-color-preview" aria-hidden="true"></span>
+                <input id="categoryColor" type="color" value="#2a9d8f">
+              </span>
+              <span id="categoryColorValue" class="category-color-value">#2A9D8F</span>
             </label>
           </div>
           <button class="secondary-button" type="submit">Add category</button>
