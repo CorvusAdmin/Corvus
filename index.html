@@ -7,7 +7,59 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="app-shell">
+  <section class="auth-shell" id="authShell" hidden>
+    <div class="auth-card" id="loginView">
+      <div class="brand-lockup auth-brand">
+        <div class="brand-mark-frame" aria-hidden="true">
+          <img class="brand-mark" src="assets/corvus-mark.png" alt="">
+        </div>
+        <div>
+          <h1>Corvus</h1>
+          <p class="tagline">Because Managing the Work Is Work</p>
+        </div>
+      </div>
+      <form id="loginForm" class="stack">
+        <label>
+          Email
+          <input id="loginEmail" type="email" autocomplete="email" required>
+        </label>
+        <label>
+          Password
+          <input id="loginPassword" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="primary-button" type="submit">Log in</button>
+      </form>
+      <button class="text-button" id="showSignup" type="button">Create an account</button>
+    </div>
+
+    <div class="auth-card" id="signupView" hidden>
+      <div class="brand-lockup auth-brand">
+        <div class="brand-mark-frame" aria-hidden="true">
+          <img class="brand-mark" src="assets/corvus-mark.png" alt="">
+        </div>
+        <div>
+          <h1>Corvus</h1>
+          <p class="tagline">Because Managing the Work Is Work</p>
+        </div>
+      </div>
+      <form id="signupForm" class="stack">
+        <label>
+          Email
+          <input id="signupEmail" type="email" autocomplete="email" required>
+        </label>
+        <label>
+          Password
+          <input id="signupPassword" type="password" autocomplete="new-password" minlength="6" required>
+        </label>
+        <button class="primary-button" type="submit">Sign up</button>
+      </form>
+      <button class="text-button" id="showLogin" type="button">Back to login</button>
+    </div>
+
+    <div class="auth-message" id="authMessage" hidden></div>
+  </section>
+
+  <div class="app-shell" id="appShell" hidden>
     <header class="topbar">
       <div class="brand-lockup">
         <div class="brand-mark-frame" aria-hidden="true">
@@ -19,9 +71,11 @@
         </div>
       </div>
       <div class="top-actions">
+        <span class="user-chip" id="userEmail"></span>
         <button class="ghost-button" id="printSchedule" type="button" title="Print schedule">Print</button>
         <button class="ghost-button" id="exportCsv" type="button" title="Export schedule as CSV">Export CSV</button>
         <button class="danger-button" id="clearData" type="button" title="Clear saved planner data">Clear</button>
+        <button class="ghost-button" id="logoutButton" type="button" title="Log out">Logout</button>
       </div>
     </header>
 
@@ -269,6 +323,6 @@
     </div>
   </template>
 
-  <script src="app.js"></script>
+  <script type="module" src="/app.js"></script>
 </body>
 </html>

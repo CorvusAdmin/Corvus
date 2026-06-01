@@ -1,5 +1,23 @@
+import { createClient } from "@supabase/supabase-js";
+
 const STORAGE_KEY = "corvus-v1";
 const LEGACY_STORAGE_KEYS = ["pulseops-v1", "property-workload-planner-v1"];
+const DEFAULT_SCHEDULE_TITLE = "Corvus Planner";
+const METADATA_PRIORITY = "corvus-metadata";
+const TASK_PRIORITY = "corvus-task";
+const UNAVAILABLE_PRIORITY = "corvus-unavailable";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+const supabase = supabaseConfigured
+  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  })
+  : null;
 
 const dayNames = [
   { index: 0, short: "Sun", label: "Sunday" },
@@ -40,11 +58,33 @@ const defaultState = {
   scheduleView: "week",
 };
 
-let state = loadState();
+let state = structuredClone(defaultState);
 let latestPlan = { segments: [], risks: [], unscheduled: [] };
 let saveWarning = "";
+let currentUser = null;
+let currentSchedule = null;
+let remoteReady = false;
+let isLoadingRemote = false;
+let remoteSaveTimer = null;
+let remoteSaveInFlight = false;
+let pendingRemoteSave = false;
 
 const els = {
+  authShell: document.querySelector("#authShell"),
+  appShell: document.querySelector("#appShell"),
+  loginView: document.querySelector("#loginView"),
+  signupView: document.querySelector("#signupView"),
+  loginForm: document.querySelector("#loginForm"),
+  signupForm: document.querySelector("#signupForm"),
+  loginEmail: document.querySelector("#loginEmail"),
+  loginPassword: document.querySelector("#loginPassword"),
+  signupEmail: document.querySelector("#signupEmail"),
+  signupPassword: document.querySelector("#signupPassword"),
+  showSignup: document.querySelector("#showSignup"),
+  showLogin: document.querySelector("#showLogin"),
+  authMessage: document.querySelector("#authMessage"),
+  userEmail: document.querySelector("#userEmail"),
+  logoutButton: document.querySelector("#logoutButton"),
   workDays: document.querySelector("#workDays"),
   workStart: document.querySelector("#workStart"),
   workEnd: document.querySelector("#workEnd"),
@@ -94,18 +134,19 @@ const els = {
 
 initialize();
 
-function initialize() {
+async function initialize() {
   renderWorkDays();
   hydrateForms();
   bindEvents();
+  bindAuthEvents();
   setSmartDefaults();
-  render();
+  await initializeAuth();
 }
 
-function loadState() {
+function loadLegacyPlannerState() {
   try {
     const saved = JSON.parse(readSavedPlannerState());
-    if (!saved || typeof saved !== "object") return structuredClone(defaultState);
+    if (!saved || typeof saved !== "object") return null;
     return {
       ...structuredClone(defaultState),
       ...saved,
@@ -117,14 +158,18 @@ function loadState() {
       scheduleView: saved.scheduleView || "week",
     };
   } catch {
-    return structuredClone(defaultState);
+    return null;
   }
 }
 
 function readSavedPlannerState() {
-  return [STORAGE_KEY, ...LEGACY_STORAGE_KEYS]
-    .map((key) => localStorage.getItem(key))
-    .find(Boolean) || null;
+  try {
+    return [STORAGE_KEY, ...LEGACY_STORAGE_KEYS]
+      .map((key) => localStorage.getItem(key))
+      .find(Boolean) || null;
+  } catch {
+    return null;
+  }
 }
 
 function normalizeCategories(categories) {
@@ -150,16 +195,18 @@ function normalizeCategories(categories) {
 }
 
 function saveState() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    saveWarning = "";
-    renderSaveNotice();
-    return true;
-  } catch {
-    saveWarning = "This browser is blocking local file storage, so changes will work on screen but may not remain after you close or refresh the page.";
-    renderSaveNotice();
+  if (!remoteReady || isLoadingRemote || !currentUser || !currentSchedule) {
     return false;
   }
+  queueRemoteSave();
+  return true;
+}
+
+function queueRemoteSave() {
+  window.clearTimeout(remoteSaveTimer);
+  remoteSaveTimer = window.setTimeout(() => {
+    void saveStateToSupabase();
+  }, 300);
 }
 
 function renderWorkDays() {
@@ -333,6 +380,428 @@ function bindEvents() {
     setSmartDefaults();
     render();
   });
+}
+
+function bindAuthEvents() {
+  els.showSignup.addEventListener("click", () => navigateAuth("signup"));
+  els.showLogin.addEventListener("click", () => navigateAuth("login"));
+  window.addEventListener("hashchange", renderAuthRoute);
+
+  els.loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!requireSupabaseConfig()) return;
+    setAuthMessage("Logging in...");
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: els.loginEmail.value.trim(),
+      password: els.loginPassword.value,
+    });
+    if (error) {
+      setAuthMessage(error.message);
+      return;
+    }
+    await enterProtectedApp(data.session?.user || data.user);
+  });
+
+  els.signupForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!requireSupabaseConfig()) return;
+    setAuthMessage("Creating account...");
+    const { data, error } = await supabase.auth.signUp({
+      email: els.signupEmail.value.trim(),
+      password: els.signupPassword.value,
+    });
+    if (error) {
+      setAuthMessage(error.message);
+      return;
+    }
+    if (data.session?.user) {
+      await enterProtectedApp(data.session.user);
+      return;
+    }
+    setAuthMessage("Check your email to confirm your account, then log in.");
+    navigateAuth("login");
+  });
+
+  els.logoutButton.addEventListener("click", async () => {
+    if (!supabase) return;
+    await flushRemoteSave();
+    await supabase.auth.signOut();
+  });
+}
+
+async function initializeAuth() {
+  if (!requireSupabaseConfig()) {
+    showLoggedOutView("login");
+    return;
+  }
+
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT") {
+      showLoggedOutView("login");
+      return;
+    }
+    if (session?.user && event !== "INITIAL_SESSION") {
+      void enterProtectedApp(session.user);
+    }
+  });
+
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    showLoggedOutView("login");
+    setAuthMessage(error.message);
+    return;
+  }
+
+  if (data.session?.user) {
+    await enterProtectedApp(data.session.user);
+  } else {
+    showLoggedOutView(getAuthModeFromHash());
+  }
+}
+
+function requireSupabaseConfig() {
+  if (supabaseConfigured) return true;
+  setAuthMessage("Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, then restart the app.");
+  return false;
+}
+
+function navigateAuth(mode) {
+  window.location.hash = mode === "signup" ? "signup" : "login";
+  renderAuthRoute();
+}
+
+function renderAuthRoute() {
+  if (currentUser) {
+    showProtectedView();
+    return;
+  }
+  showLoggedOutView(getAuthModeFromHash());
+}
+
+function getAuthModeFromHash() {
+  return window.location.hash.replace("#", "") === "signup" ? "signup" : "login";
+}
+
+function showLoggedOutView(mode) {
+  currentUser = null;
+  currentSchedule = null;
+  remoteReady = false;
+  window.clearTimeout(remoteSaveTimer);
+  els.appShell.hidden = true;
+  els.authShell.hidden = false;
+  els.loginView.hidden = mode === "signup";
+  els.signupView.hidden = mode !== "signup";
+  if (!["#login", "#signup"].includes(window.location.hash)) {
+    window.location.hash = mode === "signup" ? "signup" : "login";
+  }
+}
+
+function showProtectedView() {
+  els.authShell.hidden = true;
+  els.appShell.hidden = false;
+  if (window.location.hash !== "#schedule") {
+    history.replaceState(null, "", "#schedule");
+  }
+}
+
+function setAuthMessage(message) {
+  els.authMessage.hidden = !message;
+  els.authMessage.textContent = message || "";
+}
+
+async function enterProtectedApp(user) {
+  if (!user) {
+    showLoggedOutView("login");
+    return;
+  }
+
+  if (remoteReady && currentUser?.id === user.id) {
+    showProtectedView();
+    return;
+  }
+
+  currentUser = user;
+  els.userEmail.textContent = user.email || "";
+  setAuthMessage("");
+  showProtectedView();
+  await loadUserSchedule();
+}
+
+async function loadUserSchedule() {
+  if (!currentUser || !supabase) return;
+  isLoadingRemote = true;
+  remoteReady = false;
+  saveWarning = "Loading your schedule...";
+  renderSaveNotice();
+
+  try {
+    await ensureProfile();
+    currentSchedule = await ensureDefaultSchedule();
+    const { data, error } = await supabase
+      .from("schedule_items")
+      .select("*")
+      .eq("user_id", currentUser.id)
+      .eq("schedule_id", currentSchedule.id)
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+
+    if (data?.length) {
+      state = deserializeScheduleItems(data);
+      saveWarning = "";
+    } else {
+      state = loadLegacyPlannerState() || structuredClone(defaultState);
+      saveWarning = "";
+      remoteReady = true;
+      isLoadingRemote = false;
+      hydrateLoadedState();
+      render();
+      await saveStateToSupabase();
+      return;
+    }
+
+    remoteReady = true;
+    isLoadingRemote = false;
+    hydrateLoadedState();
+    render();
+  } catch (error) {
+    isLoadingRemote = false;
+    saveWarning = `Supabase could not load this schedule: ${error.message}`;
+    renderSaveNotice();
+    showLoggedOutView("login");
+    setAuthMessage(saveWarning);
+  }
+}
+
+async function ensureProfile() {
+  const { error } = await supabase
+    .from("profiles")
+    .upsert({
+      id: currentUser.id,
+      email: currentUser.email || "",
+    }, { onConflict: "id" });
+  if (error) throw error;
+}
+
+async function ensureDefaultSchedule() {
+  const { data, error } = await supabase
+    .from("schedules")
+    .select("*")
+    .eq("user_id", currentUser.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (data) return data;
+
+  const { data: created, error: createError } = await supabase
+    .from("schedules")
+    .insert({
+      user_id: currentUser.id,
+      title: DEFAULT_SCHEDULE_TITLE,
+    })
+    .select()
+    .single();
+
+  if (createError) throw createError;
+  return created;
+}
+
+function hydrateLoadedState() {
+  renderWorkDays();
+  hydrateForms();
+  setSmartDefaults();
+}
+
+async function flushRemoteSave() {
+  window.clearTimeout(remoteSaveTimer);
+  if (remoteReady && currentUser && currentSchedule) {
+    await saveStateToSupabase();
+  }
+}
+
+async function saveStateToSupabase() {
+  if (!remoteReady || isLoadingRemote || !currentUser || !currentSchedule || !supabase) return;
+  if (remoteSaveInFlight) {
+    pendingRemoteSave = true;
+    return;
+  }
+
+  remoteSaveInFlight = true;
+  pendingRemoteSave = false;
+
+  try {
+    const rows = serializeScheduleItems();
+    const { error: deleteError } = await supabase
+      .from("schedule_items")
+      .delete()
+      .eq("user_id", currentUser.id)
+      .eq("schedule_id", currentSchedule.id);
+
+    if (deleteError) throw deleteError;
+
+    if (rows.length) {
+      const { error: insertError } = await supabase
+        .from("schedule_items")
+        .insert(rows);
+      if (insertError) throw insertError;
+    }
+
+    saveWarning = "";
+    renderSaveNotice();
+  } catch (error) {
+    saveWarning = `Supabase could not save this schedule: ${error.message}`;
+    renderSaveNotice();
+  } finally {
+    remoteSaveInFlight = false;
+    if (pendingRemoteSave) {
+      pendingRemoteSave = false;
+      await saveStateToSupabase();
+    }
+  }
+}
+
+function serializeScheduleItems() {
+  const base = {
+    schedule_id: currentSchedule.id,
+    user_id: currentUser.id,
+  };
+
+  const rows = [{
+    ...base,
+    title: "Corvus planner settings",
+    priority: METADATA_PRIORITY,
+    status: "metadata",
+    notes: encodeItemNotes("metadata", {
+      settings: state.settings,
+      categories: state.categories,
+      filter: state.filter,
+      scheduleView: state.scheduleView,
+    }),
+  }];
+
+  state.unavailable.forEach((block) => {
+    rows.push({
+      ...base,
+      title: block.title,
+      start_time: block.start,
+      end_time: block.end,
+      priority: UNAVAILABLE_PRIORITY,
+      status: "blocked",
+      notes: encodeItemNotes("unavailable", block),
+    });
+  });
+
+  state.tasks.forEach((task) => {
+    rows.push({
+      ...base,
+      title: task.title,
+      end_time: task.due,
+      priority: TASK_PRIORITY,
+      status: task.complete ? "complete" : "open",
+      notes: encodeItemNotes("task", task),
+    });
+  });
+
+  return rows;
+}
+
+function deserializeScheduleItems(rows) {
+  const nextState = structuredClone(defaultState);
+
+  rows.forEach((row) => {
+    const decoded = decodeItemNotes(row.notes);
+    if (decoded.kind !== "metadata") return;
+    const metadata = decoded.payload || {};
+    nextState.settings = { ...defaultState.settings, ...(metadata.settings || {}) };
+    nextState.categories = normalizeCategories(metadata.categories);
+    nextState.filter = metadata.filter || defaultState.filter;
+    nextState.scheduleView = metadata.scheduleView || defaultState.scheduleView;
+  });
+
+  rows.forEach((row) => {
+    const decoded = decodeItemNotes(row.notes);
+    if (decoded.kind === "task") {
+      nextState.tasks.push(normalizeTask(decoded.payload, row));
+      return;
+    }
+    if (decoded.kind === "unavailable") {
+      nextState.unavailable.push(normalizeUnavailableBlock(decoded.payload, row));
+      return;
+    }
+    if (decoded.kind === "metadata" || row.priority === METADATA_PRIORITY) return;
+    nextState.tasks.push(convertScheduleItemToTask(row));
+  });
+
+  return nextState;
+}
+
+function encodeItemNotes(kind, payload) {
+  return JSON.stringify({
+    corvus: true,
+    version: 1,
+    kind,
+    payload,
+  });
+}
+
+function decodeItemNotes(notes) {
+  try {
+    const parsed = JSON.parse(notes || "");
+    if (parsed?.corvus && parsed.kind) return parsed;
+  } catch {
+    return { kind: "", payload: null };
+  }
+  return { kind: "", payload: null };
+}
+
+function normalizeTask(task, row) {
+  const fallbackDue = row.end_time || row.start_time || new Date().toISOString();
+  return {
+    id: task?.id || row.id || createId("task"),
+    seriesId: task?.seriesId || null,
+    recurrence: task?.recurrence || "none",
+    occurrenceIndex: task?.occurrenceIndex || 1,
+    title: task?.title || row.title,
+    categoryId: getValidCategoryId(task?.categoryId || "other"),
+    estimateMinutes: Number(task?.estimateMinutes) || 60,
+    due: task?.due || fallbackDue,
+    notes: task?.notes || "",
+    complete: typeof task?.complete === "boolean" ? task.complete : row.status === "complete",
+    createdAt: task?.createdAt || row.created_at || new Date().toISOString(),
+  };
+}
+
+function normalizeUnavailableBlock(block, row) {
+  const start = block?.start || row.start_time || new Date().toISOString();
+  return {
+    id: block?.id || row.id || createId("block"),
+    seriesId: block?.seriesId || null,
+    recurrence: block?.recurrence || "none",
+    nthWeek: block?.nthWeek ?? null,
+    nthDay: block?.nthDay ?? null,
+    occurrenceIndex: block?.occurrenceIndex || 1,
+    title: block?.title || row.title || "Unavailable",
+    start,
+    end: block?.end || row.end_time || addMinutes(new Date(start), 60).toISOString(),
+  };
+}
+
+function convertScheduleItemToTask(row) {
+  return {
+    id: row.id || createId("task"),
+    seriesId: null,
+    recurrence: "none",
+    occurrenceIndex: 1,
+    title: row.title || "Untitled task",
+    categoryId: "other",
+    estimateMinutes: 60,
+    due: row.end_time || row.start_time || new Date().toISOString(),
+    notes: row.notes || "",
+    complete: row.status === "complete",
+    createdAt: row.created_at || new Date().toISOString(),
+  };
 }
 
 function setSmartDefaults() {

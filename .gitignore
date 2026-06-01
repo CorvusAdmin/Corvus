@@ -3,5 +3,9 @@ desktop.ini
 .DS_Store
 *.log
 *.zip
+.env
+.env.local
+node_modules/
+dist/
 codex-write-test.tmp
 git-metadata/

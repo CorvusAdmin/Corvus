@@ -2,27 +2,52 @@
 
 Because Managing the Work Is Work
 
-Corvus is a lightweight workload management app for property managers. It helps organize tasks, unavailable time, recurring obligations, and generated schedules from a single local dashboard.
+Corvus is a workload management app for property managers. It supports authenticated users, per-user schedules, task queues, unavailable time, recurring obligations, and generated daily/weekly/monthly schedule views.
 
-## Current Features
+## Features
 
+- Supabase signup, login, logout, and persisted sessions
+- Protected schedule dashboard
+- Per-user schedules and schedule items
 - Task queue with due dates, estimates, notes, categories, and completion tracking
 - Preset and custom categories
 - Workday and work-hour settings
 - Unavailable time blocks with recurrence support
 - Recurring task generation
-- Daily, weekly, and monthly schedule views
-- Deadline risk and workload summary metrics
 - CSV export and print support
-- Local browser storage
+
+## Setup
+
+1. Create a Supabase project.
+2. Run the SQL in `supabase-rls.sql` from the Supabase SQL editor.
+3. Copy `.env.example` to `.env` for local development.
+4. Add your Supabase values:
+
+```env
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+
+5. Install and run locally:
+
+```powershell
+npm install
+npm run dev
+```
+
+## Vercel
+
+Add these environment variables in the Vercel project settings:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+
+Then deploy from GitHub. Vercel will run the Vite build.
 
 ## Files
 
 - `index.html` - app markup
 - `styles.css` - visual design
-- `app.js` - app logic and scheduling
+- `app.js` - app logic, Supabase auth, and scheduling
+- `supabase-rls.sql` - tables, indexes, RLS, and policies
 - `assets/` - Corvus logo assets
-
-## Notes
-
-This version stores data in the browser. For shared use, cross-device sync, or production deployment, the next step is adding authentication and a cloud database.
