@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Corvus - Because Managing the Work Is Work</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <div class="brand-mark-frame" aria-hidden="true">
+          <img class="brand-mark" src="assets/corvus-mark.png" alt="">
+        </div>
+        <div>
+          <h1>Corvus</h1>
+          <p class="tagline">Because Managing the Work Is Work</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="ghost-button" id="printSchedule" type="button" title="Print schedule">Print</button>
+        <button class="ghost-button" id="exportCsv" type="button" title="Export schedule as CSV">Export CSV</button>
+        <button class="danger-button" id="clearData" type="button" title="Clear saved planner data">Clear</button>
+      </div>
+    </header>
+
+    <div class="save-notice" id="saveNotice" hidden></div>
+
+    <section class="metrics-grid" aria-label="Workload summary">
+      <article class="metric">
+        <span class="metric-label">Open work</span>
+        <strong id="openCount">0</strong>
+        <span id="openHours">0 hours queued</span>
+      </article>
+      <article class="metric">
+        <span class="metric-label">Deadline risk</span>
+        <strong id="riskCount">0</strong>
+        <span id="riskDetail">Nothing at risk</span>
+      </article>
+      <article class="metric">
+        <span class="metric-label">Next due</span>
+        <strong id="nextDue">None</strong>
+        <span id="nextDueDetail">No open deadlines</span>
+      </article>
+      <article class="metric">
+        <span class="metric-label">Available this week</span>
+        <strong id="weekCapacity">0h</strong>
+        <span id="weekCapacityDetail">Based on settings</span>
+      </article>
+    </section>
+
+    <main class="workspace">
+      <section class="panel setup-panel">
+        <div class="panel-heading">
+          <h2>Work Setup</h2>
+        </div>
+
+        <form id="settingsForm" class="stack">
+          <fieldset>
+            <legend>Work days</legend>
+            <div class="day-toggle-grid" id="workDays"></div>
+          </fieldset>
+
+          <div class="two-column">
+            <label>
+              Start
+              <input id="workStart" type="time" required>
+            </label>
+            <label>
+              End
+              <input id="workEnd" type="time" required>
+            </label>
+          </div>
+
+          <label>
+            Max focus block
+            <select id="chunkMinutes">
+              <option value="45">45 minutes</option>
+              <option value="60">1 hour</option>
+              <option value="90">1.5 hours</option>
+              <option value="120">2 hours</option>
+              <option value="180">3 hours</option>
+            </select>
+          </label>
+        </form>
+
+        <div class="divider"></div>
+
+        <form id="unavailableForm" class="stack">
+          <div class="panel-heading compact">
+            <h2>Unavailable</h2>
+          </div>
+          <label>
+            Name
+            <input id="blockTitle" type="text" placeholder="Board meeting">
+          </label>
+          <label>
+            From
+            <input id="blockStart" type="datetime-local">
+          </label>
+          <label>
+            Until
+            <input id="blockEnd" type="datetime-local">
+          </label>
+          <div class="two-column">
+            <label>
+              Repeats
+              <select id="blockRecurrence">
+                <option value="none">No repeat</option>
+                <option value="daily">Daily</option>
+                <option value="weekdays">Weekdays</option>
+                <option value="weekends">Weekends</option>
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Every 2 weeks</option>
+                <option value="monthly">Monthly</option>
+                <option value="monthlyNth">Monthly by weekday</option>
+                <option value="bimonthlyNth">Every other month by weekday</option>
+              </select>
+            </label>
+            <label>
+              Repeat until
+              <input id="blockRepeatUntil" type="date">
+            </label>
+          </div>
+          <div class="two-column recurrence-detail" id="blockNthControls" hidden>
+            <label>
+              Week
+              <select id="blockNthWeek">
+                <option value="1">1st</option>
+                <option value="2">2nd</option>
+                <option value="3">3rd</option>
+                <option value="4">4th</option>
+                <option value="-1">Last</option>
+              </select>
+            </label>
+            <label>
+              Day
+              <select id="blockNthDay">
+                <option value="0">Sunday</option>
+                <option value="1">Monday</option>
+                <option value="2">Tuesday</option>
+                <option value="3">Wednesday</option>
+                <option value="4">Thursday</option>
+                <option value="5">Friday</option>
+                <option value="6">Saturday</option>
+              </select>
+            </label>
+          </div>
+          <button class="primary-button" type="submit">Add unavailable time</button>
+        </form>
+        <div id="blockList" class="item-list" aria-live="polite"></div>
+      </section>
+
+      <section class="panel task-panel">
+        <div class="panel-heading">
+          <h2>Add Work</h2>
+        </div>
+
+        <form id="taskForm" class="stack">
+          <label>
+            Task
+            <input id="taskTitle" type="text" placeholder="Follow up on roof estimate" required>
+          </label>
+
+          <label>
+            Category
+            <select id="taskCategory"></select>
+          </label>
+
+          <div class="two-column">
+            <label>
+              Estimate
+              <input id="taskEstimate" type="number" min="15" step="15" value="60" required>
+            </label>
+            <label>
+              Due
+              <input id="taskDue" type="datetime-local" required>
+            </label>
+          </div>
+
+          <div class="two-column">
+            <label>
+              Repeats
+              <select id="taskRecurrence">
+                <option value="none">No repeat</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Every 2 weeks</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </label>
+            <label>
+              Repeat until
+              <input id="taskRepeatUntil" type="date">
+            </label>
+          </div>
+
+          <label>
+            Notes
+            <textarea id="taskNotes" rows="4" placeholder="Owner, vendor, board decision, account number"></textarea>
+          </label>
+
+          <button class="primary-button" type="submit">Add task</button>
+        </form>
+
+        <div class="divider"></div>
+
+        <form id="categoryForm" class="stack">
+          <div class="panel-heading compact">
+            <h2>Categories</h2>
+          </div>
+          <div class="two-column category-tools">
+            <label>
+              Name
+              <input id="categoryName" type="text" placeholder="Insurance">
+            </label>
+            <label>
+              Color
+              <input id="categoryColor" type="color" value="#2a9d8f">
+            </label>
+          </div>
+          <button class="secondary-button" type="submit">Add category</button>
+        </form>
+        <div id="categoryList" class="category-list" aria-live="polite"></div>
+      </section>
+
+      <section class="panel schedule-panel">
+        <div class="panel-heading schedule-heading">
+          <div>
+            <h2>Generated Schedule</h2>
+            <p id="scheduleSubhead">Ready for work to be added</p>
+          </div>
+          <div class="schedule-actions">
+            <div class="schedule-view-toggle" role="group" aria-label="Schedule view">
+              <button class="schedule-view-button" data-schedule-view="day" type="button">Day</button>
+              <button class="schedule-view-button active" data-schedule-view="week" type="button">Week</button>
+              <button class="schedule-view-button" data-schedule-view="month" type="button">Month</button>
+            </div>
+            <button class="secondary-button" id="todayButton" type="button">Today</button>
+          </div>
+        </div>
+        <div id="scheduleList" class="schedule-list" aria-live="polite"></div>
+      </section>
+
+      <section class="panel queue-panel">
+        <div class="panel-heading">
+          <h2>Queue</h2>
+        </div>
+        <div class="queue-filters" role="group" aria-label="Queue filter">
+          <button class="filter-button active" data-filter="open" type="button">Open</button>
+          <button class="filter-button" data-filter="complete" type="button">Complete</button>
+          <button class="filter-button" data-filter="all" type="button">All</button>
+        </div>
+        <div id="queueList" class="item-list queue-list" aria-live="polite"></div>
+      </section>
+    </main>
+  </div>
+
+  <template id="emptyStateTemplate">
+    <div class="empty-state">
+      <strong></strong>
+      <span></span>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
