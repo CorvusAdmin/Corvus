@@ -28,6 +28,8 @@ VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
+Use the project URL only for `VITE_SUPABASE_URL`. Do not include `/rest/v1` or any Auth path.
+
 5. Install and run locally:
 
 ```powershell

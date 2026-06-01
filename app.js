@@ -6,12 +6,17 @@ const DEFAULT_SCHEDULE_TITLE = "Corvus Planner";
 const METADATA_PRIORITY = "corvus-metadata";
 const TASK_PRIORITY = "corvus-task";
 const UNAVAILABLE_PRIORITY = "corvus-unavailable";
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const RAW_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_URL = normalizeSupabaseProjectUrl(RAW_SUPABASE_URL);
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 console.log("Supabase env present", {
   VITE_SUPABASE_URL: Boolean(SUPABASE_URL),
   VITE_SUPABASE_ANON_KEY: Boolean(SUPABASE_ANON_KEY),
+  VITE_SUPABASE_URL_NORMALIZED: Boolean(RAW_SUPABASE_URL && RAW_SUPABASE_URL !== SUPABASE_URL),
 });
+if (RAW_SUPABASE_URL && RAW_SUPABASE_URL !== SUPABASE_URL) {
+  console.warn("Supabase URL included an API path and was normalized before client initialization.");
+}
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 const supabase = supabaseConfigured
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -1756,6 +1761,14 @@ function getValidCategoryId(categoryId) {
 function normalizeColor(value, fallback = "#65726d") {
   const color = String(value || "").trim();
   return /^#[0-9a-f]{6}$/i.test(color) ? color : fallback;
+}
+
+function normalizeSupabaseProjectUrl(value) {
+  if (!value) return "";
+  return String(value)
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/rest\/v1$/i, "");
 }
 
 function appendEmpty(parent, title, body) {
