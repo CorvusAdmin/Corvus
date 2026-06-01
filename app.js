@@ -868,26 +868,25 @@ function buildSchedule() {
   const segments = buildBlockedSegments(120);
   const risks = [];
   const unscheduled = [];
-  let intervalIndex = 0;
 
   pendingTasks.forEach((task) => {
     let remaining = task.estimateMinutes;
     const taskSegments = [];
     const due = new Date(task.due);
+    const schedulableFrom = getTaskSchedulableStart(task);
 
-    while (remaining > 0 && intervalIndex < intervals.length) {
+    while (remaining > 0) {
+      const intervalIndex = findNextSchedulableInterval(intervals, schedulableFrom);
+      if (intervalIndex === -1) break;
       const interval = intervals[intervalIndex];
-      const available = minutesBetween(interval.start, interval.end);
-      if (available <= 0) {
-        intervalIndex += 1;
-        continue;
-      }
+      const start = maxDate(interval.start, schedulableFrom);
+      const available = minutesBetween(start, interval.end);
+      if (available <= 0) break;
 
       const minutes = Math.min(remaining, available, state.settings.chunkMinutes);
-      const start = new Date(interval.start);
       const end = addMinutes(start, minutes);
-      interval.start = end;
       remaining -= minutes;
+      consumeIntervalTime(intervals, intervalIndex, start, end);
 
       taskSegments.push({
         type: "task",
@@ -900,8 +899,6 @@ function buildSchedule() {
         due,
         endsAfterDue: end > due,
       });
-
-      if (minutesBetween(interval.start, interval.end) <= 0) intervalIndex += 1;
     }
 
     if (remaining > 0) {
@@ -927,6 +924,41 @@ function buildSchedule() {
     risks,
     unscheduled,
   };
+}
+
+function getTaskSchedulableStart(task) {
+  const due = new Date(task.due);
+  if (!task.recurrence || task.recurrence === "none") return new Date(0);
+  if (task.recurrence === "daily" || task.recurrence === "weekdays" || task.recurrence === "weekends") {
+    return startOfDay(due);
+  }
+  if (task.recurrence === "weekly" || task.recurrence === "biweekly") {
+    return startOfWeek(due);
+  }
+  return startOfMonth(due);
+}
+
+function findNextSchedulableInterval(intervals, schedulableFrom) {
+  for (let index = 0; index < intervals.length; index += 1) {
+    const interval = intervals[index];
+    const start = maxDate(interval.start, schedulableFrom);
+    if (minutesBetween(start, interval.end) > 0) return index;
+  }
+  return -1;
+}
+
+function consumeIntervalTime(intervals, index, start, end) {
+  const interval = intervals[index];
+  const pieces = [];
+
+  if (interval.start < start) {
+    pieces.push({ start: interval.start, end: start });
+  }
+  if (end < interval.end) {
+    pieces.push({ start: end, end: interval.end });
+  }
+
+  intervals.splice(index, 1, ...pieces);
 }
 
 function generateWorkIntervals(daysAhead) {
@@ -1116,6 +1148,14 @@ function withMinutesOfDay(day, minutes) {
 function startOfDay(date) {
   const next = new Date(date);
   next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function startOfWeek(date) {
+  const next = startOfDay(date);
+  const day = next.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  next.setDate(next.getDate() + diff);
   return next;
 }
 
