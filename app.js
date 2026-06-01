@@ -782,45 +782,160 @@ function renderQueue() {
   els.queueList.innerHTML = "";
   const riskByTask = new Map(latestPlan.risks.map((risk) => [risk.taskId, risk]));
   const tasks = state.tasks
-    .filter((task) => {
-      if (state.filter === "open") return !task.complete;
-      if (state.filter === "complete") return task.complete;
-      return true;
-    })
-    .sort((a, b) => {
-      if (a.complete !== b.complete) return a.complete ? 1 : -1;
-      return new Date(a.due) - new Date(b.due);
-    });
+    .filter(taskMatchesQueueFilter)
+    .sort(compareQueueTasks);
 
   if (!tasks.length) {
     appendEmpty(els.queueList, "No tasks in this view", "Tasks will appear here after they are added.");
     return;
   }
 
+  groupTasksForQueue(tasks).forEach((item) => {
+    els.queueList.append(item.type === "series"
+      ? renderTaskSeries(item, riskByTask)
+      : renderTaskCard(item.task, riskByTask));
+  });
+}
+
+function taskMatchesQueueFilter(task) {
+  if (state.filter === "open") return !task.complete;
+  if (state.filter === "complete") return task.complete;
+  return true;
+}
+
+function compareQueueTasks(a, b) {
+  if (a.complete !== b.complete) return a.complete ? 1 : -1;
+  return new Date(a.due) - new Date(b.due);
+}
+
+function groupTasksForQueue(tasks) {
+  const series = new Map();
+  const items = [];
+
   tasks.forEach((task) => {
-    const category = getCategory(task.categoryId);
+    if (!task.seriesId) {
+      items.push({
+        type: "single",
+        task,
+        complete: task.complete,
+        sortDate: new Date(task.due),
+      });
+      return;
+    }
+
+    if (!series.has(task.seriesId)) {
+      const allTasks = state.tasks
+        .filter((candidate) => candidate.seriesId === task.seriesId)
+        .sort((a, b) => new Date(a.due) - new Date(b.due));
+
+      series.set(task.seriesId, {
+        type: "series",
+        seriesId: task.seriesId,
+        recurrence: task.recurrence,
+        categoryId: task.categoryId,
+        title: getTaskSeriesTitle(task),
+        displayTasks: [],
+        allTasks,
+      });
+    }
+
+    series.get(task.seriesId).displayTasks.push(task);
+  });
+
+  series.forEach((group) => {
+    group.displayTasks.sort(compareQueueTasks);
+    group.openTasks = group.allTasks.filter((task) => !task.complete);
+    group.completedTasks = group.allTasks.filter((task) => task.complete);
+    group.complete = group.openTasks.length === 0;
+    group.sortDate = new Date((group.displayTasks[0] || group.allTasks[0]).due);
+    items.push(group);
+  });
+
+  return items.sort((a, b) => {
+    if (a.complete !== b.complete) return a.complete ? 1 : -1;
+    return a.sortDate - b.sortDate;
+  });
+}
+
+function renderTaskCard(task, riskByTask) {
+  const category = getCategory(task.categoryId);
+  const risk = riskByTask.get(task.id);
+  const card = document.createElement("article");
+  card.className = `item-card ${task.complete ? "task-complete" : ""}`;
+  card.innerHTML = `
+    <div class="item-top">
+      <div class="item-title">${escapeHtml(task.title)}</div>
+      <span class="category-pill" style="background:${escapeAttribute(category.color)}">${escapeHtml(category.name)}</span>
+    </div>
+    <div class="item-meta">
+      ${formatDuration(task.estimateMinutes)} needed - due ${formatDateTime(new Date(task.due))}
+      ${risk ? ` - <span class="risk-pill">${escapeHtml(risk.reason)}</span>` : ""}
+    </div>
+    ${task.notes ? `<div class="item-notes">${escapeHtml(task.notes)}</div>` : ""}
+    <div class="item-actions">
+      <button class="small-button" type="button" data-task-toggle="${escapeAttribute(task.id)}">${task.complete ? "Reopen" : "Complete"}</button>
+      <button class="small-button danger" type="button" data-task-delete="${escapeAttribute(task.id)}">Delete</button>
+    </div>
+  `;
+  return card;
+}
+
+function renderTaskSeries(group, riskByTask) {
+  const card = document.createElement("article");
+  const category = getCategory(group.categoryId);
+  const first = group.allTasks[0];
+  const last = group.allTasks[group.allTasks.length - 1];
+  const actionTask = state.filter === "complete"
+    ? [...group.displayTasks].reverse().find((task) => task.complete) || group.completedTasks[group.completedTasks.length - 1]
+    : group.openTasks[0] || group.completedTasks[group.completedTasks.length - 1];
+  const actionLabel = actionTask.complete ? "Reopen latest" : "Complete next";
+  const nextTask = group.openTasks.find((task) => new Date(task.due) >= new Date()) || group.openTasks[0] || group.displayTasks[0];
+  const riskCount = group.displayTasks.filter((task) => riskByTask.has(task.id)).length;
+  const detailLabel = state.filter === "open"
+    ? "View open dates"
+    : state.filter === "complete"
+      ? "View completed dates"
+      : "View series dates";
+  const dateRows = group.displayTasks.map((task) => {
     const risk = riskByTask.get(task.id);
-    const card = document.createElement("article");
-    card.className = `item-card ${task.complete ? "task-complete" : ""}`;
-    card.innerHTML = `
-      <div class="item-top">
-        <div class="item-title">${escapeHtml(task.title)}</div>
-        <span class="category-pill" style="background:${escapeAttribute(category.color)}">${escapeHtml(category.name)}</span>
-      </div>
-      <div class="item-meta">
-        ${formatDuration(task.estimateMinutes)} needed · due ${formatDateTime(new Date(task.due))}
-        ${task.seriesId ? ` · ${escapeHtml(formatRecurrence(task.recurrence))} series` : ""}
-        ${risk ? ` · <span class="risk-pill">${escapeHtml(risk.reason)}</span>` : ""}
-      </div>
-      ${task.notes ? `<div class="item-notes">${escapeHtml(task.notes)}</div>` : ""}
-      <div class="item-actions">
-        <button class="small-button" type="button" data-task-toggle="${escapeAttribute(task.id)}">${task.complete ? "Reopen" : "Complete"}</button>
-        <button class="small-button danger" type="button" data-task-delete="${escapeAttribute(task.id)}">Delete</button>
-        ${task.seriesId ? `<button class="small-button danger" type="button" data-task-series-delete="${escapeAttribute(task.seriesId)}">Delete series</button>` : ""}
+    return `
+      <div class="series-date-row task-series-row ${task.complete ? "task-complete" : ""}">
+        <span class="series-row-copy">
+          <strong>${escapeHtml(formatDateTime(new Date(task.due)))}</strong>
+          <span>${formatDuration(task.estimateMinutes)} needed${risk ? ` - ${escapeHtml(risk.reason)}` : ""}</span>
+        </span>
+        <span class="series-row-actions">
+          <button class="small-button" type="button" data-task-toggle="${escapeAttribute(task.id)}">${task.complete ? "Reopen" : "Complete"}</button>
+          <button class="small-button danger" type="button" data-task-delete="${escapeAttribute(task.id)}">Delete</button>
+        </span>
       </div>
     `;
-    els.queueList.append(card);
-  });
+  }).join("");
+
+  card.className = `item-card series-card ${group.complete ? "task-complete" : ""}`;
+  card.innerHTML = `
+    <div class="item-top">
+      <div>
+        <div class="item-title">${escapeHtml(group.title)}</div>
+        <div class="item-meta">
+          ${escapeHtml(formatRecurrence(group.recurrence))} series - ${group.allTasks.length} task${group.allTasks.length === 1 ? "" : "s"} - ${group.openTasks.length} open, ${group.completedTasks.length} complete - ${escapeHtml(formatShortDate(new Date(first.due)))} to ${escapeHtml(formatShortDate(new Date(last.due)))}
+          ${riskCount ? ` - <span class="risk-pill">${riskCount} at risk</span>` : ""}
+        </div>
+      </div>
+      <span class="category-pill" style="background:${escapeAttribute(category.color)}">${escapeHtml(category.name)}</span>
+    </div>
+    <div class="series-next">Next due: ${escapeHtml(formatDateTime(new Date(nextTask.due)))} - ${formatDuration(nextTask.estimateMinutes)} needed</div>
+    ${nextTask.notes ? `<div class="item-notes">${escapeHtml(nextTask.notes)}</div>` : ""}
+    <div class="item-actions">
+      <button class="small-button" type="button" data-task-toggle="${escapeAttribute(actionTask.id)}">${actionLabel}</button>
+      <button class="small-button danger" type="button" data-task-series-delete="${escapeAttribute(group.seriesId)}">Delete series</button>
+    </div>
+    <details class="series-details">
+      <summary>${detailLabel}</summary>
+      <div class="series-date-list">${dateRows}</div>
+    </details>
+  `;
+  return card;
 }
 
 function renderMetrics() {
@@ -1151,6 +1266,13 @@ function scrollToToday() {
 
 function getCategory(categoryId) {
   return state.categories.find((category) => category.id === categoryId) || state.categories.find((category) => category.id === "other") || defaultCategories.at(-1);
+}
+
+function getTaskSeriesTitle(task) {
+  const dueSuffix = ` (${formatShortDate(new Date(task.due))})`;
+  return task.title.endsWith(dueSuffix)
+    ? task.title.slice(0, -dueSuffix.length)
+    : task.title;
 }
 
 function getValidCategoryId(categoryId) {

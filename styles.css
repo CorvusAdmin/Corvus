@@ -733,6 +733,32 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.task-series-row {
+  align-items: start;
+}
+
+.series-row-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.series-row-copy strong {
+  color: var(--ink);
+  font-size: 0.84rem;
+}
+
+.series-row-copy span {
+  color: var(--muted);
+}
+
+.series-row-actions {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .task-complete {
   opacity: 0.62;
 }
