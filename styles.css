@@ -47,6 +47,7 @@ input,
 select,
 textarea {
   font: inherit;
+  min-width: 0;
 }
 
 button {
@@ -96,6 +97,7 @@ legend {
   gap: 7px;
   font-size: 0.85rem;
   font-weight: 700;
+  min-width: 0;
 }
 
 fieldset {
