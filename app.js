@@ -8,6 +8,10 @@ const TASK_PRIORITY = "corvus-task";
 const UNAVAILABLE_PRIORITY = "corvus-unavailable";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+console.log("Supabase env present", {
+  VITE_SUPABASE_URL: Boolean(SUPABASE_URL),
+  VITE_SUPABASE_ANON_KEY: Boolean(SUPABASE_ANON_KEY),
+});
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 const supabase = supabaseConfigured
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
