@@ -265,6 +265,10 @@ fieldset {
   animation: loginButtonAwaken 520ms ease forwards;
 }
 
+body.login-transition-active {
+  overflow: hidden;
+}
+
 .login-raven-transition {
   position: fixed;
   inset: 0;
@@ -272,22 +276,23 @@ fieldset {
   pointer-events: none;
   overflow: hidden;
   background:
-    radial-gradient(circle at 56% 42%, rgba(0, 240, 209, 0.09), transparent 34%),
-    radial-gradient(circle at 24% 72%, rgba(143, 166, 217, 0.10), transparent 28%),
-    linear-gradient(135deg, rgba(5, 8, 10, 0.22), rgba(3, 6, 8, 0.86));
-  animation: transitionVeil 3600ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    radial-gradient(circle at 54% 42%, rgba(0, 240, 209, 0.11), transparent 34%),
+    radial-gradient(circle at 24% 72%, rgba(143, 166, 217, 0.08), transparent 30%),
+    linear-gradient(135deg, rgba(3, 7, 8, 0.32), rgba(1, 3, 5, 0.91));
+  animation: transitionVeil 3800ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .raven-veil {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(2, 5, 6, 0.18), rgba(2, 5, 6, 0.54)),
-    radial-gradient(circle at center, transparent, rgba(0, 0, 0, 0.34));
-  animation: ravenVignette 3600ms ease forwards;
+    linear-gradient(180deg, rgba(2, 5, 6, 0.20), rgba(2, 5, 6, 0.58)),
+    radial-gradient(circle at 54% 42%, transparent 20%, rgba(0, 0, 0, 0.42));
+  animation: ravenVignette 3800ms ease forwards;
 }
 
 .button-origin-glow,
+.transformation-aura,
 .feather-spirit,
 .spirit-raven {
   position: absolute;
@@ -306,132 +311,225 @@ fieldset {
     inset 0 0 18px rgba(236, 241, 235, 0.12);
   transform: translate(calc(var(--origin-x) - 78px), calc(var(--origin-y) - 25px)) scale(0.72);
   opacity: 0;
-  animation: originGlowRitual 880ms ease forwards;
+  animation: originGlowRitual 980ms ease forwards;
 }
 
 .feather-spirit {
-  width: 82px;
-  height: 122px;
-  transform: translate(calc(var(--origin-x) - 36px), calc(var(--origin-y) - 66px)) scale(0.22) rotate(84deg);
+  width: 96px;
+  height: 144px;
+  transform: translate(calc(var(--origin-x) - 42px), calc(var(--origin-y) - 78px)) scale(0.16) rotate(86deg);
   opacity: 0;
   filter:
-    drop-shadow(0 0 14px rgba(0, 240, 209, 0.36))
-    drop-shadow(0 0 34px rgba(143, 166, 217, 0.18));
-  animation: featherRitual 2050ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    drop-shadow(0 0 18px rgba(0, 240, 209, 0.42))
+    drop-shadow(0 0 38px rgba(143, 166, 217, 0.16));
+  animation: featherRitual 2260ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .feather-spirit svg {
   position: relative;
   z-index: 2;
-  width: 82px;
-  height: 122px;
+  width: 96px;
+  height: 144px;
   overflow: visible;
 }
 
 .feather-core {
-  fill: #030707;
-  stroke: rgba(184, 238, 228, 0.20);
+  fill: #020506;
+  stroke: rgba(184, 238, 228, 0.22);
   stroke-width: 1;
 }
 
 .feather-edge {
-  fill: rgba(0, 240, 209, 0.13);
-  stroke: rgba(0, 240, 209, 0.78);
+  fill: rgba(0, 240, 209, 0.14);
+  stroke: rgba(0, 240, 209, 0.82);
   stroke-width: 1.2;
 }
 
 .feather-vein,
 .feather-barb {
   fill: none;
-  stroke: rgba(184, 238, 228, 0.52);
+  stroke: rgba(184, 238, 228, 0.58);
   stroke-linecap: round;
   stroke-width: 1.1;
 }
 
 .feather-glow {
   position: absolute;
-  inset: 28px 12px 8px;
+  inset: 32px 12px 8px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0, 240, 209, 0.24), transparent 68%);
-  filter: blur(12px);
-  animation: featherGlowPulse 1450ms ease-in-out forwards;
+  background: radial-gradient(circle, rgba(0, 240, 209, 0.28), transparent 68%);
+  filter: blur(14px);
+  animation: featherGlowPulse 1700ms ease-in-out forwards;
+}
+
+.transformation-aura {
+  width: 240px;
+  height: 190px;
+  transform: translate(calc(var(--raven-form-x) - 36px), calc(var(--raven-form-y) - 30px));
+  opacity: 0;
+  animation: transformationAura 3800ms ease forwards;
+}
+
+.transformation-aura span {
+  position: absolute;
+  border: 1px solid rgba(0, 240, 209, 0.16);
+  border-left-color: transparent;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  filter: blur(0.5px) drop-shadow(0 0 12px rgba(0, 240, 209, 0.18));
+  opacity: 0;
+  transform: rotate(var(--aura-rotate)) scale(0.72);
+  animation: auraWisp 1550ms ease-out forwards;
+  animation-delay: var(--aura-delay);
+}
+
+.transformation-aura span:nth-child(1) {
+  --aura-rotate: 14deg;
+  --aura-delay: 1320ms;
+  inset: 18px 42px 42px 18px;
+}
+
+.transformation-aura span:nth-child(2) {
+  --aura-rotate: -24deg;
+  --aura-delay: 1470ms;
+  inset: 42px 22px 20px 48px;
+}
+
+.transformation-aura span:nth-child(3) {
+  --aura-rotate: 54deg;
+  --aura-delay: 1630ms;
+  inset: 8px 72px 64px 38px;
+}
+
+.transformation-aura span:nth-child(4) {
+  --aura-rotate: -62deg;
+  --aura-delay: 1780ms;
+  inset: 64px 38px 18px 72px;
 }
 
 .spirit-raven {
-  width: 168px;
-  height: 116px;
-  transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.56) rotate(-12deg);
+  width: 286px;
+  height: 198px;
+  transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.26) rotate(-14deg);
   opacity: 0;
   filter:
-    drop-shadow(0 0 16px rgba(0, 240, 209, 0.32))
-    drop-shadow(0 0 38px rgba(143, 166, 217, 0.18));
-  animation: ravenSpiritFlight 3600ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    drop-shadow(0 0 18px rgba(0, 240, 209, 0.32))
+    drop-shadow(0 0 44px rgba(143, 166, 217, 0.16));
+  animation: ravenSpiritFlight 3800ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .raven-svg {
   position: relative;
   z-index: 3;
-  width: 168px;
-  height: 116px;
+  width: 286px;
+  height: 198px;
   overflow: visible;
 }
 
 .raven-svg path {
-  fill: rgba(2, 6, 7, 0.92);
-  stroke: rgba(184, 238, 228, 0.20);
-  stroke-width: 0.8;
+  fill: url("#ravenCoreShade");
+  stroke: rgba(184, 238, 228, 0.16);
+  stroke-linejoin: round;
+  stroke-width: 1.2;
 }
 
 .raven-edge {
   fill: none !important;
   stroke: url("#ravenEdgeGlow") !important;
   stroke-linecap: round;
-  stroke-width: 2;
-  opacity: 0.92;
+  stroke-linejoin: round;
+  stroke-width: 3;
+  opacity: 0;
+  stroke-dasharray: 560;
+  stroke-dashoffset: 560;
+  animation: ravenEdgeIgnite 3800ms ease forwards;
 }
 
 .raven-wing {
-  transform-origin: 88px 72px;
-  animation: ravenWingRitual 620ms ease-in-out 4 alternate;
+  transform-box: fill-box;
+  transform-origin: 56% 82%;
+  animation: ravenWingRitual 760ms ease-in-out 3 alternate;
+  animation-delay: 1960ms;
 }
 
 .raven-wing-back {
-  fill: rgba(7, 17, 18, 0.70);
+  fill: rgba(5, 13, 15, 0.70) !important;
 }
 
 .raven-wing-front,
 .raven-body,
+.raven-neck,
+.raven-beak,
 .raven-head,
-.raven-tail {
-  fill: rgba(2, 6, 7, 0.96);
+.raven-tail,
+.raven-tail-feather {
+  fill: url("#ravenCoreShade") !important;
+}
+
+.raven-beak {
+  fill: rgba(1, 4, 5, 0.98) !important;
+}
+
+.raven-eye {
+  fill: rgba(184, 238, 228, 0.92);
+  filter: drop-shadow(0 0 7px rgba(0, 240, 209, 0.58));
+  opacity: 0;
+  animation: ravenEyeAwaken 3800ms ease forwards;
 }
 
 .raven-energy {
   position: absolute;
-  inset: 4px -18px -18px -26px;
+  inset: 0 -26px -26px -42px;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 70% 40%, rgba(0, 240, 209, 0.20), transparent 45%),
-    radial-gradient(circle at 20% 80%, rgba(143, 166, 217, 0.16), transparent 55%);
-  filter: blur(16px);
+    radial-gradient(circle at 74% 42%, rgba(0, 240, 209, 0.24), transparent 42%),
+    radial-gradient(circle at 24% 78%, rgba(143, 166, 217, 0.14), transparent 56%);
+  filter: blur(18px);
   opacity: 0;
-  animation: ravenEnergyWake 3600ms ease forwards;
+  animation: ravenEnergyWake 3800ms ease forwards;
 }
 
-.raven-trail {
+.raven-wake {
   position: absolute;
   z-index: 1;
-  left: -155px;
-  top: 62px;
-  width: 190px;
-  height: 3px;
+  left: -220px;
+  top: 116px;
+  width: 272px;
+  height: 4px;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(236, 241, 235, 0.12), rgba(0, 240, 209, 0.34), transparent);
-  box-shadow: 0 0 30px rgba(0, 240, 209, 0.22);
+  background: linear-gradient(90deg, transparent, rgba(184, 238, 228, 0.13), rgba(0, 240, 209, 0.32), transparent);
+  box-shadow: 0 0 34px rgba(0, 240, 209, 0.24);
   transform-origin: right center;
   opacity: 0;
-  animation: ravenTrailRitual 3600ms ease forwards;
+  animation: ravenWakeRitual 3800ms ease forwards;
 }
+
+.raven-wisps {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+}
+
+.raven-wisps span {
+  position: absolute;
+  left: -110px;
+  top: var(--wisp-y);
+  width: var(--wisp-w);
+  height: 32px;
+  border-top: 1px solid rgba(0, 240, 209, 0.20);
+  border-radius: 50%;
+  filter: blur(0.5px) drop-shadow(0 0 11px rgba(0, 240, 209, 0.18));
+  opacity: 0;
+  transform: rotate(var(--wisp-r)) scaleX(0.34);
+  transform-origin: right center;
+  animation: ravenWispTrail 1800ms ease-out forwards;
+  animation-delay: var(--wisp-delay);
+}
+
+.raven-wisps span:nth-child(1) { --wisp-y: 82px; --wisp-w: 174px; --wisp-r: -10deg; --wisp-delay: 1980ms; }
+.raven-wisps span:nth-child(2) { --wisp-y: 116px; --wisp-w: 216px; --wisp-r: 6deg; --wisp-delay: 2140ms; }
+.raven-wisps span:nth-child(3) { --wisp-y: 144px; --wisp-w: 142px; --wisp-r: 16deg; --wisp-delay: 2320ms; }
+.raven-wisps span:nth-child(4) { --wisp-y: 54px; --wisp-w: 128px; --wisp-r: -22deg; --wisp-delay: 2460ms; }
 
 .raven-particles,
 .arrival-dust {
@@ -452,25 +550,26 @@ fieldset {
 }
 
 .raven-particles span {
-  left: 18px;
-  top: 62px;
-  animation: ravenParticleRitual 1800ms ease-out forwards;
+  left: 38px;
+  top: 128px;
+  animation: ravenParticleRitual 1900ms ease-out forwards;
 }
 
-.raven-particles span:nth-child(1) { --particle-x: -58px; --particle-y: 18px; animation-delay: 1750ms; }
-.raven-particles span:nth-child(2) { --particle-x: -96px; --particle-y: -12px; animation-delay: 1880ms; }
-.raven-particles span:nth-child(3) { --particle-x: -126px; --particle-y: 32px; animation-delay: 2020ms; }
-.raven-particles span:nth-child(4) { --particle-x: -78px; --particle-y: 52px; animation-delay: 2160ms; }
-.raven-particles span:nth-child(5) { --particle-x: -150px; --particle-y: 4px; animation-delay: 2320ms; }
-.raven-particles span:nth-child(6) { --particle-x: -118px; --particle-y: -38px; animation-delay: 2460ms; }
-.raven-particles span:nth-child(7) { --particle-x: -34px; --particle-y: -26px; animation-delay: 2600ms; }
+.raven-particles span:nth-child(1) { --particle-x: -66px; --particle-y: 18px; animation-delay: 1840ms; }
+.raven-particles span:nth-child(2) { --particle-x: -116px; --particle-y: -12px; animation-delay: 1980ms; }
+.raven-particles span:nth-child(3) { --particle-x: -148px; --particle-y: 34px; animation-delay: 2120ms; }
+.raven-particles span:nth-child(4) { --particle-x: -88px; --particle-y: 58px; animation-delay: 2260ms; }
+.raven-particles span:nth-child(5) { --particle-x: -176px; --particle-y: 4px; animation-delay: 2400ms; }
+.raven-particles span:nth-child(6) { --particle-x: -128px; --particle-y: -42px; animation-delay: 2540ms; }
+.raven-particles span:nth-child(7) { --particle-x: -42px; --particle-y: -30px; animation-delay: 2680ms; }
+.raven-particles span:nth-child(8) { --particle-x: -188px; --particle-y: 68px; animation-delay: 2820ms; }
 
 .waypoint-field {
   position: absolute;
   inset: 7vh 9vw;
   z-index: 1;
   opacity: 0;
-  animation: waypointAwaken 3600ms ease forwards;
+  animation: waypointAwaken 3800ms ease forwards;
 }
 
 .waypoint-field svg {
@@ -481,30 +580,31 @@ fieldset {
 
 .waypoint-line {
   fill: none;
-  stroke: rgba(184, 238, 228, 0.22);
+  stroke: rgba(184, 238, 228, 0.20);
   stroke-width: 1;
-  stroke-dasharray: 8 10;
-  stroke-dashoffset: 80;
-  filter: drop-shadow(0 0 8px rgba(0, 240, 209, 0.20));
-  animation: waypointLineTrace 1400ms ease forwards;
-  animation-delay: 1750ms;
+  stroke-dasharray: 5 12;
+  stroke-dashoffset: 90;
+  filter: drop-shadow(0 0 8px rgba(0, 240, 209, 0.16));
+  animation: waypointLineTrace 1500ms ease forwards;
+  animation-delay: 2180ms;
 }
 
 .waypoint-node {
   fill: rgba(2, 6, 7, 0.9);
-  stroke: rgba(0, 240, 209, 0.62);
+  stroke: rgba(0, 240, 209, 0.58);
   stroke-width: 2;
   opacity: 0;
-  filter: drop-shadow(0 0 11px rgba(0, 240, 209, 0.34));
+  filter: drop-shadow(0 0 12px rgba(0, 240, 209, 0.28));
   animation: waypointNodePulse 1300ms ease forwards;
-  animation-delay: 1900ms;
+  animation-delay: 2320ms;
 }
 
 .node-two,
-.node-five { animation-delay: 2060ms; }
+.node-five { animation-delay: 2480ms; }
 .node-three,
-.node-six { animation-delay: 2220ms; }
-.node-four { animation-delay: 2380ms; }
+.node-six { animation-delay: 2640ms; }
+.node-four { animation-delay: 2800ms; }
+.node-seven { animation-delay: 2960ms; }
 
 .dashboard-vision {
   position: absolute;
@@ -524,7 +624,7 @@ fieldset {
     0 0 38px rgba(0, 240, 209, 0.08);
   opacity: 0;
   transform: translateY(18px) scale(0.98);
-  animation: dashboardVisionReveal 3600ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: dashboardVisionReveal 3800ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .dashboard-vision span {
@@ -542,7 +642,7 @@ fieldset {
   top: 10%;
   width: 34%;
   height: 24%;
-  animation-delay: 2480ms;
+  animation-delay: 2860ms;
 }
 
 .dashboard-vision span:nth-child(2) {
@@ -550,7 +650,7 @@ fieldset {
   top: 10%;
   width: 42%;
   height: 24%;
-  animation-delay: 2610ms;
+  animation-delay: 2990ms;
 }
 
 .dashboard-vision span:nth-child(3) {
@@ -558,7 +658,7 @@ fieldset {
   bottom: 10%;
   width: 42%;
   height: 48%;
-  animation-delay: 2740ms;
+  animation-delay: 3120ms;
 }
 
 .dashboard-vision span:nth-child(4) {
@@ -566,7 +666,7 @@ fieldset {
   bottom: 10%;
   width: 42%;
   height: 48%;
-  animation-delay: 2870ms;
+  animation-delay: 3250ms;
 }
 
 .arrival-dust {
@@ -579,15 +679,15 @@ fieldset {
 
 .arrival-dust span {
   animation: arrivalDust 900ms ease-out forwards;
-  animation-delay: 3060ms;
+  animation-delay: 3320ms;
 }
 
 .arrival-dust span:nth-child(1) { --dust-x: -42px; --dust-y: 20px; }
-.arrival-dust span:nth-child(2) { --dust-x: 28px; --dust-y: 18px; animation-delay: 3140ms; }
-.arrival-dust span:nth-child(3) { --dust-x: -18px; --dust-y: -36px; animation-delay: 3220ms; }
-.arrival-dust span:nth-child(4) { --dust-x: 46px; --dust-y: -28px; animation-delay: 3300ms; }
-.arrival-dust span:nth-child(5) { --dust-x: -64px; --dust-y: -10px; animation-delay: 3380ms; }
-.arrival-dust span:nth-child(6) { --dust-x: 8px; --dust-y: 46px; animation-delay: 3460ms; }
+.arrival-dust span:nth-child(2) { --dust-x: 28px; --dust-y: 18px; animation-delay: 3400ms; }
+.arrival-dust span:nth-child(3) { --dust-x: -18px; --dust-y: -36px; animation-delay: 3480ms; }
+.arrival-dust span:nth-child(4) { --dust-x: 46px; --dust-y: -28px; animation-delay: 3560ms; }
+.arrival-dust span:nth-child(5) { --dust-x: -64px; --dust-y: -10px; animation-delay: 3640ms; }
+.arrival-dust span:nth-child(6) { --dust-x: 8px; --dust-y: 46px; animation-delay: 3720ms; }
 
 .topbar {
   display: flex;
@@ -1375,7 +1475,7 @@ h2 {
     transform: translateY(0) scale(1);
     filter: blur(0);
   }
-  38% {
+  44% {
     opacity: 0.82;
     transform: translateY(3px) scale(0.992);
     filter: blur(1px);
@@ -1403,8 +1503,8 @@ h2 {
   0% {
     opacity: 0;
   }
-  10%,
-  86% {
+  9%,
+  91% {
     opacity: 1;
   }
   100% {
@@ -1416,8 +1516,8 @@ h2 {
   0% {
     opacity: 0;
   }
-  24%,
-  78% {
+  18%,
+  84% {
     opacity: 0.9;
   }
   100% {
@@ -1430,12 +1530,12 @@ h2 {
     opacity: 0;
     transform: translate(calc(var(--origin-x) - 78px), calc(var(--origin-y) - 25px)) scale(0.72);
   }
-  35% {
+  32% {
     opacity: 1;
   }
-  72% {
-    opacity: 0.72;
-    transform: translate(calc(var(--origin-x) - 78px), calc(var(--origin-y) - 25px)) scale(0.48);
+  70% {
+    opacity: 0.78;
+    transform: translate(calc(var(--origin-x) - 78px), calc(var(--origin-y) - 25px)) scale(0.44);
   }
   100% {
     opacity: 0;
@@ -1446,19 +1546,19 @@ h2 {
 @keyframes featherRitual {
   0% {
     opacity: 0;
-    transform: translate(calc(var(--origin-x) - 36px), calc(var(--origin-y) - 66px)) scale(0.18) rotate(88deg);
+    transform: translate(calc(var(--origin-x) - 42px), calc(var(--origin-y) - 78px)) scale(0.12) rotate(88deg);
   }
-  14% {
+  12% {
     opacity: 1;
   }
-  28% {
-    transform: translate(calc(var(--origin-x) - 24px), calc(var(--origin-y) - 80px)) scale(0.74) rotate(72deg);
+  24% {
+    transform: translate(calc(var(--origin-x) - 28px), calc(var(--origin-y) - 92px)) scale(0.76) rotate(70deg);
   }
-  58% {
+  50% {
     opacity: 1;
     transform: translate(var(--feather-rise-x), var(--feather-rise-y)) scale(0.98) rotate(22deg);
   }
-  80% {
+  72% {
     opacity: 0.78;
     transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.82) rotate(-28deg);
   }
@@ -1472,7 +1572,7 @@ h2 {
   0% {
     opacity: 0;
   }
-  42% {
+  38% {
     opacity: 0.95;
   }
   100% {
@@ -1480,34 +1580,103 @@ h2 {
   }
 }
 
-@keyframes ravenSpiritFlight {
-  0% {
-    opacity: 0;
-    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.42) rotate(-18deg);
-  }
-  42% {
+@keyframes transformationAura {
+  0%,
+  32% {
     opacity: 0;
   }
-  54% {
-    opacity: 0.56;
-    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.68) rotate(-8deg);
+  48% {
+    opacity: 0.92;
   }
   72% {
-    opacity: 1;
-    transform: translate(var(--raven-center-x), var(--raven-center-y)) scale(1) rotate(0deg);
+    opacity: 0.58;
   }
   100% {
     opacity: 0;
-    transform: translate(var(--raven-exit-x), var(--raven-exit-y)) scale(0.86) rotate(14deg);
+  }
+}
+
+@keyframes auraWisp {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--aura-rotate)) scale(0.58);
+  }
+  36% {
+    opacity: 0.84;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(calc(var(--aura-rotate) + 22deg)) scale(1.12);
+  }
+}
+
+@keyframes ravenSpiritFlight {
+  0% {
+    opacity: 0;
+    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.20) rotate(-18deg);
+  }
+  43% {
+    opacity: 0;
+    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.20) rotate(-18deg);
+  }
+  54% {
+    opacity: 0.44;
+    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.54) rotate(-8deg);
+  }
+  66% {
+    opacity: 1;
+    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.82) rotate(-2deg);
+  }
+  82% {
+    opacity: 1;
+    transform: translate(var(--raven-center-x), var(--raven-center-y)) scale(1) rotate(1deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--raven-exit-x), var(--raven-exit-y)) scale(0.84) rotate(14deg);
   }
 }
 
 @keyframes ravenWingRitual {
   0% {
-    transform: rotate(-5deg) scaleY(0.94);
+    transform: rotate(-4deg) scaleY(0.96);
   }
   100% {
-    transform: rotate(8deg) scaleY(1.08);
+    transform: rotate(7deg) scaleY(1.06);
+  }
+}
+
+@keyframes ravenEdgeIgnite {
+  0%,
+  46% {
+    opacity: 0;
+    stroke-dashoffset: 560;
+  }
+  64% {
+    opacity: 1;
+    stroke-dashoffset: 160;
+  }
+  84% {
+    opacity: 0.92;
+    stroke-dashoffset: 0;
+  }
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ravenEyeAwaken {
+  0%,
+  60% {
+    opacity: 0;
+  }
+  70%,
+  88% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
   }
 }
 
@@ -1517,25 +1686,42 @@ h2 {
     opacity: 0;
   }
   62% {
-    opacity: 0.86;
+    opacity: 0.78;
+  }
+  82% {
+    opacity: 0.46;
   }
   100% {
     opacity: 0;
   }
 }
 
-@keyframes ravenTrailRitual {
+@keyframes ravenWakeRitual {
   0%,
-  43% {
+  46% {
     opacity: 0;
-    transform: scaleX(0.18);
+    transform: scaleX(0.12);
   }
-  64% {
-    opacity: 0.78;
+  68% {
+    opacity: 0.74;
   }
   100% {
     opacity: 0;
     transform: scaleX(1);
+  }
+}
+
+@keyframes ravenWispTrail {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--wisp-r)) scaleX(0.20) translateX(0);
+  }
+  32% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--wisp-r)) scaleX(1) translateX(-34px);
   }
 }
 
@@ -1555,12 +1741,12 @@ h2 {
 
 @keyframes waypointAwaken {
   0%,
-  42% {
+  50% {
     opacity: 0;
   }
-  64%,
-  82% {
-    opacity: 1;
+  66%,
+  86% {
+    opacity: 0.9;
   }
   100% {
     opacity: 0;
@@ -1595,12 +1781,12 @@ h2 {
 
 @keyframes dashboardVisionReveal {
   0%,
-  60% {
+  66% {
     opacity: 0;
     transform: translateY(18px) scale(0.98);
   }
-  78% {
-    opacity: 0.86;
+  84% {
+    opacity: 0.82;
   }
   100% {
     opacity: 0;
@@ -1656,6 +1842,7 @@ h2 {
   }
 
   .login-raven-transition .button-origin-glow,
+  .login-raven-transition .transformation-aura,
   .login-raven-transition .feather-spirit,
   .login-raven-transition .spirit-raven,
   .login-raven-transition .waypoint-field,
