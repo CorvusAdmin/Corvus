@@ -4,6 +4,8 @@ const DEFAULT_SCHEDULE_TITLE = "Corvus Planner";
 const METADATA_PRIORITY = "corvus-metadata";
 const TASK_PRIORITY = "corvus-task";
 const UNAVAILABLE_PRIORITY = "corvus-unavailable";
+const LOGIN_FEATHER_ASSET = "assets/corvus-feather-spirit.png";
+const LOGIN_RAVEN_ASSET = "assets/corvus-raven-spirit.png";
 const RAW_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_URL = normalizeSupabaseProjectUrl(RAW_SUPABASE_URL);
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -146,12 +148,21 @@ const els = {
 initialize();
 
 async function initialize() {
+  preloadLoginTransitionAssets();
   renderWorkDays();
   hydrateForms();
   bindEvents();
   bindAuthEvents();
   setSmartDefaults();
   await initializeAuth();
+}
+
+function preloadLoginTransitionAssets() {
+  [LOGIN_FEATHER_ASSET, LOGIN_RAVEN_ASSET].forEach((src) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.src = src;
+  });
 }
 
 function normalizeCategories(categories) {
@@ -566,9 +577,14 @@ function LoginRavenTransition({ onComplete, startElement, duration = 3800 }) {
   overlay.style.setProperty("--raven-center-y", `${path.centerY}px`);
   overlay.style.setProperty("--raven-exit-x", `${path.exitX}px`);
   overlay.style.setProperty("--raven-exit-y", `${path.exitY}px`);
+  overlay.style.setProperty("--feather-width", `${path.featherWidth}px`);
+  overlay.style.setProperty("--feather-height", `${path.featherHeight}px`);
+  overlay.style.setProperty("--raven-width", `${path.ravenWidth}px`);
+  overlay.style.setProperty("--raven-height", `${path.ravenHeight}px`);
   overlay.innerHTML = `
     <div class="raven-veil" aria-hidden="true"></div>
     <div class="button-origin-glow" aria-hidden="true"></div>
+    <div class="button-light-point" aria-hidden="true"></div>
     <div class="transformation-aura" aria-hidden="true">
       <span></span><span></span><span></span><span></span>
     </div>
@@ -595,18 +611,15 @@ function LoginRavenTransition({ onComplete, startElement, duration = 3800 }) {
     </div>
     <div class="feather-spirit" aria-hidden="true">
       <div class="feather-glow"></div>
-      <svg viewBox="0 0 112 168" focusable="false">
-        <path class="feather-core" d="M88 8 C52 17 23 52 16 94 C12 119 21 148 35 160 C34 126 48 78 80 18 C64 55 48 104 48 160 C68 140 88 102 96 60 C100 38 98 18 88 8 Z"></path>
-        <path class="feather-edge" d="M88 8 C52 17 23 52 16 94 C12 119 21 148 35 160 C36 119 51 66 88 8 Z"></path>
-        <path class="feather-vein" d="M38 160 C42 112 58 58 88 8"></path>
-        <path class="feather-barb" d="M45 124 C30 128 20 137 14 151"></path>
-        <path class="feather-barb" d="M52 96 C36 99 26 107 18 120"></path>
-        <path class="feather-barb" d="M62 68 C44 70 34 78 24 91"></path>
-        <path class="feather-barb" d="M70 43 C54 45 44 52 35 64"></path>
-      </svg>
+      <img class="feather-asset" src="${LOGIN_FEATHER_ASSET}" alt="" decoding="async">
+      <div class="feather-particles">
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
     </div>
     <div class="spirit-raven" aria-hidden="true">
       <div class="raven-energy"></div>
+      <img class="raven-asset raven-emergence" src="${LOGIN_RAVEN_ASSET}" alt="" decoding="async">
+      <img class="raven-asset raven-flight" src="${LOGIN_RAVEN_ASSET}" alt="" decoding="async">
       <div class="raven-wake"></div>
       <div class="raven-wisps">
         <span></span><span></span><span></span><span></span>
@@ -614,31 +627,6 @@ function LoginRavenTransition({ onComplete, startElement, duration = 3800 }) {
       <div class="raven-particles">
         <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
       </div>
-      <svg class="raven-svg" viewBox="0 0 320 220" focusable="false">
-        <defs>
-          <linearGradient id="ravenEdgeGlow" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#b8eee4" stop-opacity="0.82"></stop>
-            <stop offset="50%" stop-color="#00f0d1" stop-opacity="0.48"></stop>
-            <stop offset="100%" stop-color="#8fa6d9" stop-opacity="0.10"></stop>
-          </linearGradient>
-          <linearGradient id="ravenCoreShade" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#111b1c" stop-opacity="0.98"></stop>
-            <stop offset="56%" stop-color="#020506" stop-opacity="0.98"></stop>
-            <stop offset="100%" stop-color="#000203" stop-opacity="0.98"></stop>
-          </linearGradient>
-        </defs>
-        <path class="raven-wing raven-wing-back" d="M146 110 C110 72 82 44 28 18 C36 72 76 126 128 148 C158 162 190 157 224 136 C190 136 166 128 146 110 Z"></path>
-        <path class="raven-wing raven-wing-front" d="M154 114 C134 70 135 32 158 8 C202 28 242 70 276 124 C236 145 190 143 154 114 Z"></path>
-        <path class="raven-body" d="M92 150 C112 100 160 74 220 78 C242 79 260 69 284 48 C279 75 258 96 230 108 C206 137 160 160 96 170 C60 176 28 170 4 152 C42 154 70 158 92 150 Z"></path>
-        <path class="raven-neck" d="M204 82 C220 58 248 44 292 34 C278 54 252 78 222 94 Z"></path>
-        <path class="raven-beak" d="M278 54 L320 42 L286 72 Z"></path>
-        <path class="raven-tail" d="M90 150 C58 128 30 110 0 104 C18 132 44 156 84 170 Z"></path>
-        <path class="raven-tail-feather" d="M82 158 C54 156 30 164 12 184 C44 188 70 182 98 168 Z"></path>
-        <circle class="raven-eye" cx="258" cy="62" r="2.8"></circle>
-        <path class="raven-edge raven-edge-body" d="M8 152 C48 155 70 156 92 150 C112 100 160 74 220 78 C242 79 260 69 284 48 M278 54 L320 42 L286 72"></path>
-        <path class="raven-edge raven-edge-wing" d="M28 18 C70 54 110 94 146 110 M158 8 C198 28 240 70 276 124"></path>
-        <path class="raven-edge raven-edge-tail" d="M0 104 C32 116 62 134 90 150 M12 184 C44 188 70 182 98 168"></path>
-      </svg>
     </div>
     <div class="arrival-dust" aria-hidden="true">
       <span></span><span></span><span></span><span></span><span></span><span></span>
@@ -662,26 +650,34 @@ function LoginRavenTransition({ onComplete, startElement, duration = 3800 }) {
 }
 
 function getLoginTransitionPath(startElement) {
-  const fallbackX = Math.round(window.innerWidth * 0.46);
-  const fallbackY = Math.round(window.innerHeight * 0.62);
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const fallbackX = Math.round(viewportWidth * 0.46);
+  const fallbackY = Math.round(viewportHeight * 0.62);
   const rect = startElement?.getBoundingClientRect();
   const startX = rect ? rect.left + (rect.width * 0.42) : fallbackX;
   const startY = rect ? rect.top + (rect.height * 0.45) : fallbackY;
-  const ravenWidth = 286;
-  const ravenHeight = 198;
-  const centerX = Math.round(window.innerWidth * 0.54 - ravenWidth / 2);
-  const centerY = Math.round(window.innerHeight * 0.42 - ravenHeight / 2);
+  const featherWidth = Math.round(Math.min(430, Math.max(250, viewportWidth * 0.33)));
+  const featherHeight = Math.round(featherWidth * 0.67);
+  const ravenWidth = Math.round(Math.min(700, Math.max(390, viewportWidth * 0.58)));
+  const ravenHeight = Math.round(ravenWidth * 0.67);
+  const centerX = Math.round(viewportWidth * 0.52 - ravenWidth / 2);
+  const centerY = Math.round(viewportHeight * 0.43 - ravenHeight / 2);
   return {
     startX,
     startY,
-    featherX: startX + Math.max(52, window.innerWidth * 0.045),
-    featherY: Math.max(78, startY - Math.max(150, window.innerHeight * 0.24)),
-    formX: Math.max(36, centerX - Math.max(140, window.innerWidth * 0.14)),
-    formY: Math.max(58, centerY - Math.max(86, window.innerHeight * 0.12)),
+    featherWidth,
+    featherHeight,
+    ravenWidth,
+    ravenHeight,
+    featherX: Math.min(viewportWidth - featherWidth - 18, Math.max(18, startX + Math.max(38, viewportWidth * 0.045) - featherWidth / 2)),
+    featherY: Math.max(48, startY - Math.max(150, viewportHeight * 0.26)),
+    formX: Math.max(22, centerX - Math.max(120, viewportWidth * 0.13)),
+    formY: Math.max(34, centerY - Math.max(78, viewportHeight * 0.11)),
     centerX,
     centerY,
-    exitX: Math.min(window.innerWidth - 90, centerX + Math.max(230, window.innerWidth * 0.24)),
-    exitY: Math.max(42, centerY - Math.max(170, window.innerHeight * 0.26)),
+    exitX: Math.min(viewportWidth - Math.max(110, ravenWidth * 0.28), centerX + Math.max(210, viewportWidth * 0.24)),
+    exitY: Math.max(24, centerY - Math.max(160, viewportHeight * 0.25)),
   };
 }
 

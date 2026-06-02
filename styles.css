@@ -262,6 +262,7 @@ fieldset {
 }
 
 .login-success-origin {
+  transform-origin: center;
   animation: loginButtonAwaken 520ms ease forwards;
 }
 
@@ -292,6 +293,7 @@ body.login-transition-active {
 }
 
 .button-origin-glow,
+.button-light-point,
 .transformation-aura,
 .feather-spirit,
 .spirit-raven {
@@ -314,58 +316,82 @@ body.login-transition-active {
   animation: originGlowRitual 980ms ease forwards;
 }
 
+.button-light-point {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ecfffb 0%, #00f0d1 34%, rgba(0, 240, 209, 0.22) 64%, transparent 72%);
+  box-shadow:
+    0 0 18px rgba(0, 240, 209, 0.62),
+    0 0 54px rgba(0, 240, 209, 0.34);
+  opacity: 0;
+  transform: translate(calc(var(--origin-x) - 9px), calc(var(--origin-y) - 9px)) scale(0.24);
+  animation: buttonLightPoint 1200ms ease forwards;
+}
+
 .feather-spirit {
-  width: 96px;
-  height: 144px;
-  transform: translate(calc(var(--origin-x) - 42px), calc(var(--origin-y) - 78px)) scale(0.16) rotate(86deg);
+  width: var(--feather-width);
+  height: var(--feather-height);
+  transform: translate(calc(var(--origin-x) - 48px), calc(var(--origin-y) - 36px)) scale(0.08) rotate(4deg);
   opacity: 0;
   filter:
-    drop-shadow(0 0 18px rgba(0, 240, 209, 0.42))
-    drop-shadow(0 0 38px rgba(143, 166, 217, 0.16));
-  animation: featherRitual 2260ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    drop-shadow(0 0 18px rgba(0, 240, 209, 0.30))
+    drop-shadow(0 0 38px rgba(143, 166, 217, 0.12));
+  animation: featherAssetRise 2350ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.feather-spirit svg {
-  position: relative;
-  z-index: 2;
-  width: 96px;
-  height: 144px;
-  overflow: visible;
-}
-
-.feather-core {
-  fill: #020506;
-  stroke: rgba(184, 238, 228, 0.22);
-  stroke-width: 1;
-}
-
-.feather-edge {
-  fill: rgba(0, 240, 209, 0.14);
-  stroke: rgba(0, 240, 209, 0.82);
-  stroke-width: 1.2;
-}
-
-.feather-vein,
-.feather-barb {
-  fill: none;
-  stroke: rgba(184, 238, 228, 0.58);
-  stroke-linecap: round;
-  stroke-width: 1.1;
+.feather-asset,
+.raven-asset {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, #000 58%, rgba(0, 0, 0, 0.72) 72%, transparent 88%);
+  mask-image: radial-gradient(ellipse at center, #000 0%, #000 58%, rgba(0, 0, 0, 0.72) 72%, transparent 88%);
 }
 
 .feather-glow {
   position: absolute;
-  inset: 32px 12px 8px;
+  inset: 18% 12% 10%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0, 240, 209, 0.28), transparent 68%);
-  filter: blur(14px);
-  animation: featherGlowPulse 1700ms ease-in-out forwards;
+  background: radial-gradient(circle, rgba(0, 240, 209, 0.24), transparent 68%);
+  filter: blur(16px);
+  animation: featherGlowPulse 1850ms ease-in-out forwards;
 }
 
+.feather-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+.feather-particles span {
+  position: absolute;
+  left: 40%;
+  top: 74%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(236, 241, 235, 0.82);
+  box-shadow: 0 0 11px rgba(0, 240, 209, 0.48);
+  opacity: 0;
+  animation: featherParticleTrail 1450ms ease-out forwards;
+}
+
+.feather-particles span:nth-child(1) { --fp-x: -38px; --fp-y: 34px; animation-delay: 720ms; }
+.feather-particles span:nth-child(2) { --fp-x: -74px; --fp-y: 58px; animation-delay: 820ms; }
+.feather-particles span:nth-child(3) { --fp-x: -108px; --fp-y: 22px; animation-delay: 930ms; }
+.feather-particles span:nth-child(4) { --fp-x: -54px; --fp-y: -24px; animation-delay: 1040ms; }
+.feather-particles span:nth-child(5) { --fp-x: -128px; --fp-y: -10px; animation-delay: 1150ms; }
+.feather-particles span:nth-child(6) { --fp-x: -86px; --fp-y: 86px; animation-delay: 1260ms; }
+
 .transformation-aura {
-  width: 240px;
-  height: 190px;
-  transform: translate(calc(var(--raven-form-x) - 36px), calc(var(--raven-form-y) - 30px));
+  width: min(520px, 44vw);
+  height: min(340px, 34vw);
+  transform: translate(calc(var(--raven-form-x) + 8px), calc(var(--raven-form-y) + 24px));
   opacity: 0;
   animation: transformationAura 3800ms ease forwards;
 }
@@ -408,82 +434,40 @@ body.login-transition-active {
 }
 
 .spirit-raven {
-  width: 286px;
-  height: 198px;
-  transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.26) rotate(-14deg);
+  width: var(--raven-width);
+  height: var(--raven-height);
+  transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.34) rotate(-7deg);
   opacity: 0;
   filter:
-    drop-shadow(0 0 18px rgba(0, 240, 209, 0.32))
-    drop-shadow(0 0 44px rgba(143, 166, 217, 0.16));
-  animation: ravenSpiritFlight 3800ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    drop-shadow(0 0 20px rgba(0, 240, 209, 0.26))
+    drop-shadow(0 0 52px rgba(143, 166, 217, 0.12));
+  animation: ravenAssetFlight 3800ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.raven-svg {
-  position: relative;
-  z-index: 3;
-  width: 286px;
-  height: 198px;
-  overflow: visible;
+.raven-asset {
+  z-index: 4;
+  filter: saturate(1.05) contrast(1.05);
+  -webkit-mask-image: radial-gradient(ellipse at 58% 48%, #000 0%, #000 62%, rgba(0, 0, 0, 0.70) 75%, transparent 91%);
+  mask-image: radial-gradient(ellipse at 58% 48%, #000 0%, #000 62%, rgba(0, 0, 0, 0.70) 75%, transparent 91%);
 }
 
-.raven-svg path {
-  fill: url("#ravenCoreShade");
-  stroke: rgba(184, 238, 228, 0.16);
-  stroke-linejoin: round;
-  stroke-width: 1.2;
-}
-
-.raven-edge {
-  fill: none !important;
-  stroke: url("#ravenEdgeGlow") !important;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 3;
+.raven-emergence {
   opacity: 0;
-  stroke-dasharray: 560;
-  stroke-dashoffset: 560;
-  animation: ravenEdgeIgnite 3800ms ease forwards;
+  animation: ravenAssetEmerge 3800ms ease forwards;
 }
 
-.raven-wing {
-  transform-box: fill-box;
-  transform-origin: 56% 82%;
-  animation: ravenWingRitual 760ms ease-in-out 3 alternate;
-  animation-delay: 1960ms;
-}
-
-.raven-wing-back {
-  fill: rgba(5, 13, 15, 0.70) !important;
-}
-
-.raven-wing-front,
-.raven-body,
-.raven-neck,
-.raven-beak,
-.raven-head,
-.raven-tail,
-.raven-tail-feather {
-  fill: url("#ravenCoreShade") !important;
-}
-
-.raven-beak {
-  fill: rgba(1, 4, 5, 0.98) !important;
-}
-
-.raven-eye {
-  fill: rgba(184, 238, 228, 0.92);
-  filter: drop-shadow(0 0 7px rgba(0, 240, 209, 0.58));
+.raven-flight {
   opacity: 0;
-  animation: ravenEyeAwaken 3800ms ease forwards;
+  animation: ravenAssetPresence 3800ms ease forwards;
 }
 
 .raven-energy {
   position: absolute;
-  inset: 0 -26px -26px -42px;
+  inset: 12% 4% 6% 12%;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 74% 42%, rgba(0, 240, 209, 0.24), transparent 42%),
-    radial-gradient(circle at 24% 78%, rgba(143, 166, 217, 0.14), transparent 56%);
+    radial-gradient(circle at 66% 42%, rgba(0, 240, 209, 0.18), transparent 44%),
+    radial-gradient(circle at 28% 74%, rgba(143, 166, 217, 0.10), transparent 58%);
   filter: blur(18px);
   opacity: 0;
   animation: ravenEnergyWake 3800ms ease forwards;
@@ -492,13 +476,13 @@ body.login-transition-active {
 .raven-wake {
   position: absolute;
   z-index: 1;
-  left: -220px;
-  top: 116px;
-  width: 272px;
+  left: -18%;
+  top: 66%;
+  width: 46%;
   height: 4px;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, rgba(184, 238, 228, 0.13), rgba(0, 240, 209, 0.32), transparent);
-  box-shadow: 0 0 34px rgba(0, 240, 209, 0.24);
+  background: linear-gradient(90deg, transparent, rgba(184, 238, 228, 0.10), rgba(0, 240, 209, 0.24), transparent);
+  box-shadow: 0 0 28px rgba(0, 240, 209, 0.20);
   transform-origin: right center;
   opacity: 0;
   animation: ravenWakeRitual 3800ms ease forwards;
@@ -512,7 +496,7 @@ body.login-transition-active {
 
 .raven-wisps span {
   position: absolute;
-  left: -110px;
+  left: -8%;
   top: var(--wisp-y);
   width: var(--wisp-w);
   height: 32px;
@@ -526,10 +510,10 @@ body.login-transition-active {
   animation-delay: var(--wisp-delay);
 }
 
-.raven-wisps span:nth-child(1) { --wisp-y: 82px; --wisp-w: 174px; --wisp-r: -10deg; --wisp-delay: 1980ms; }
-.raven-wisps span:nth-child(2) { --wisp-y: 116px; --wisp-w: 216px; --wisp-r: 6deg; --wisp-delay: 2140ms; }
-.raven-wisps span:nth-child(3) { --wisp-y: 144px; --wisp-w: 142px; --wisp-r: 16deg; --wisp-delay: 2320ms; }
-.raven-wisps span:nth-child(4) { --wisp-y: 54px; --wisp-w: 128px; --wisp-r: -22deg; --wisp-delay: 2460ms; }
+.raven-wisps span:nth-child(1) { --wisp-y: 42%; --wisp-w: 32%; --wisp-r: -10deg; --wisp-delay: 2060ms; }
+.raven-wisps span:nth-child(2) { --wisp-y: 58%; --wisp-w: 38%; --wisp-r: 6deg; --wisp-delay: 2220ms; }
+.raven-wisps span:nth-child(3) { --wisp-y: 71%; --wisp-w: 27%; --wisp-r: 16deg; --wisp-delay: 2380ms; }
+.raven-wisps span:nth-child(4) { --wisp-y: 28%; --wisp-w: 24%; --wisp-r: -22deg; --wisp-delay: 2540ms; }
 
 .raven-particles,
 .arrival-dust {
@@ -550,8 +534,8 @@ body.login-transition-active {
 }
 
 .raven-particles span {
-  left: 38px;
-  top: 128px;
+  left: 26%;
+  top: 70%;
   animation: ravenParticleRitual 1900ms ease-out forwards;
 }
 
@@ -1489,9 +1473,21 @@ h2 {
 
 @keyframes loginButtonAwaken {
   0% {
+    color: #071211;
+    transform: scale(1);
     box-shadow: 0 10px 24px rgba(127, 212, 198, 0.18);
   }
+  38% {
+    color: rgba(7, 18, 17, 0.64);
+    transform: scale(1.02);
+    box-shadow:
+      0 0 0 1px rgba(0, 240, 209, 0.38),
+      0 0 34px rgba(0, 240, 209, 0.34),
+      0 10px 24px rgba(127, 212, 198, 0.18);
+  }
   100% {
+    color: transparent;
+    transform: scale(0.16, 0.24);
     box-shadow:
       0 0 0 1px rgba(0, 240, 209, 0.42),
       0 0 42px rgba(0, 240, 209, 0.42),
@@ -1543,28 +1539,49 @@ h2 {
   }
 }
 
-@keyframes featherRitual {
+@keyframes buttonLightPoint {
   0% {
     opacity: 0;
-    transform: translate(calc(var(--origin-x) - 42px), calc(var(--origin-y) - 78px)) scale(0.12) rotate(88deg);
+    transform: translate(calc(var(--origin-x) - 9px), calc(var(--origin-y) - 9px)) scale(0.2);
   }
-  12% {
+  28% {
     opacity: 1;
+    transform: translate(calc(var(--origin-x) - 9px), calc(var(--origin-y) - 9px)) scale(1);
   }
-  24% {
-    transform: translate(calc(var(--origin-x) - 28px), calc(var(--origin-y) - 92px)) scale(0.76) rotate(70deg);
-  }
-  50% {
-    opacity: 1;
-    transform: translate(var(--feather-rise-x), var(--feather-rise-y)) scale(0.98) rotate(22deg);
-  }
-  72% {
-    opacity: 0.78;
-    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.82) rotate(-28deg);
+  68% {
+    opacity: 0.82;
+    transform: translate(calc(var(--origin-x) - 9px), calc(var(--origin-y) - 9px)) scale(0.62);
   }
   100% {
     opacity: 0;
-    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.48) rotate(-48deg);
+    transform: translate(calc(var(--origin-x) - 9px), calc(var(--origin-y) - 9px)) scale(0.18);
+  }
+}
+
+@keyframes featherAssetRise {
+  0% {
+    opacity: 0;
+    transform: translate(calc(var(--origin-x) - 48px), calc(var(--origin-y) - 36px)) scale(0.08) rotate(2deg);
+  }
+  12% {
+    opacity: 0.42;
+    transform: translate(calc(var(--origin-x) - 48px), calc(var(--origin-y) - 36px)) scale(0.18) rotate(1deg);
+  }
+  24% {
+    opacity: 1;
+    transform: translate(calc(var(--origin-x) - 82px), calc(var(--origin-y) - 82px)) scale(0.56) rotate(-5deg);
+  }
+  54% {
+    opacity: 1;
+    transform: translate(var(--feather-rise-x), var(--feather-rise-y)) scale(0.94) rotate(5deg);
+  }
+  78% {
+    opacity: 0.44;
+    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.80) rotate(-11deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.62) rotate(-15deg);
   }
 }
 
@@ -1610,69 +1627,80 @@ h2 {
   }
 }
 
-@keyframes ravenSpiritFlight {
+@keyframes featherParticleTrail {
   0% {
     opacity: 0;
-    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.20) rotate(-18deg);
+    transform: translate(0, 0) scale(0.4);
   }
-  43% {
+  28% {
+    opacity: 0.9;
+  }
+  100% {
     opacity: 0;
-    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.20) rotate(-18deg);
+    transform: translate(var(--fp-x), var(--fp-y)) scale(1.08);
   }
-  54% {
-    opacity: 0.44;
-    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.54) rotate(-8deg);
+}
+
+@keyframes ravenAssetFlight {
+  0% {
+    opacity: 0;
+    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.34) rotate(-7deg);
   }
-  66% {
+  45% {
+    opacity: 0;
+    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.34) rotate(-7deg);
+  }
+  58% {
+    opacity: 0.68;
+    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.72) rotate(-4deg);
+  }
+  70% {
     opacity: 1;
-    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.82) rotate(-2deg);
+    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.92) rotate(-1deg);
   }
-  82% {
+  88% {
     opacity: 1;
     transform: translate(var(--raven-center-x), var(--raven-center-y)) scale(1) rotate(1deg);
   }
   100% {
     opacity: 0;
-    transform: translate(var(--raven-exit-x), var(--raven-exit-y)) scale(0.84) rotate(14deg);
+    transform: translate(var(--raven-exit-x), var(--raven-exit-y)) scale(0.78) rotate(10deg);
   }
 }
 
-@keyframes ravenWingRitual {
+@keyframes ravenAssetEmerge {
   0% {
-    transform: rotate(-4deg) scaleY(0.96);
+    opacity: 0;
+    transform: scale(0.92);
+    filter: blur(4px) saturate(1.1);
   }
-  100% {
-    transform: rotate(7deg) scaleY(1.06);
-  }
-}
-
-@keyframes ravenEdgeIgnite {
-  0%,
   46% {
     opacity: 0;
-    stroke-dashoffset: 560;
+    transform: scale(0.92);
+    filter: blur(4px) saturate(1.1);
   }
-  64% {
-    opacity: 1;
-    stroke-dashoffset: 160;
+  60% {
+    opacity: 0.78;
+    transform: scale(1);
+    filter: blur(1px) saturate(1.05);
   }
-  84% {
-    opacity: 0.92;
-    stroke-dashoffset: 0;
-  }
+  72%,
   100% {
     opacity: 0;
-    stroke-dashoffset: 0;
+    transform: scale(1.03);
+    filter: blur(0) saturate(1.05);
   }
 }
 
-@keyframes ravenEyeAwaken {
+@keyframes ravenAssetPresence {
   0%,
-  60% {
+  56% {
     opacity: 0;
   }
-  70%,
-  88% {
+  68% {
+    opacity: 0.94;
+  }
+  90% {
     opacity: 1;
   }
   100% {
@@ -1682,14 +1710,14 @@ h2 {
 
 @keyframes ravenEnergyWake {
   0%,
-  42% {
+  44% {
     opacity: 0;
   }
   62% {
-    opacity: 0.78;
+    opacity: 0.52;
   }
-  82% {
-    opacity: 0.46;
+  84% {
+    opacity: 0.38;
   }
   100% {
     opacity: 0;
