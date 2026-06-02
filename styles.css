@@ -499,6 +499,40 @@ body.login-transition-active {
   transform: translateX(-50%);
 }
 
+.asset-load-fallback {
+  position: absolute;
+  z-index: 41;
+  display: none;
+  max-width: 280px;
+  border: 1px solid rgba(240, 178, 167, 0.72);
+  border-radius: 999px;
+  background: rgba(36, 8, 8, 0.92);
+  box-shadow: 0 0 20px rgba(213, 133, 120, 0.24);
+  color: #ffd0c8;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 8px 11px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.asset-load-fallback.visible {
+  display: inline-flex;
+}
+
+.feather-load-fallback {
+  left: 18%;
+  top: 20%;
+}
+
+.raven-load-fallback {
+  left: 50%;
+  top: 20%;
+  transform: translateX(-50%);
+}
+
 .raven-energy {
   position: absolute;
   inset: 12% 4% 6% 12%;

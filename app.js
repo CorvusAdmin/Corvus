@@ -4,8 +4,8 @@ const DEFAULT_SCHEDULE_TITLE = "Corvus Planner";
 const METADATA_PRIORITY = "corvus-metadata";
 const TASK_PRIORITY = "corvus-task";
 const UNAVAILABLE_PRIORITY = "corvus-unavailable";
-const LOGIN_FEATHER_ASSET = "assets/corvus-feather-spirit.png";
-const LOGIN_RAVEN_ASSET = "assets/corvus-raven-spirit.png";
+const LOGIN_FEATHER_ASSET = "/corvus-feather-spirit.png";
+const LOGIN_RAVEN_ASSET = "/corvus-raven-spirit.png";
 const RAW_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_URL = normalizeSupabaseProjectUrl(RAW_SUPABASE_URL);
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -550,14 +550,14 @@ function playLoginSuccessTransition() {
   return new Promise((resolve) => {
     LoginRavenTransition({
       startElement: els.loginForm.querySelector("button[type='submit']"),
-      duration: 5000,
+      duration: 3800,
       onComplete: resolve,
     });
   });
 }
 
 // Temporary inline raven component. Replace the SVG below with the final branded raven asset when it is ready.
-function LoginRavenTransition({ onComplete, startElement, duration = 5000 }) {
+function LoginRavenTransition({ onComplete, startElement, duration = 3800 }) {
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const overlay = document.createElement("div");
   const path = getLoginTransitionPath(startElement);
@@ -613,6 +613,7 @@ function LoginRavenTransition({ onComplete, startElement, duration = 5000 }) {
       <div class="feather-glow"></div>
       <img class="feather-asset" src="${LOGIN_FEATHER_ASSET}" alt="" decoding="async">
       <div class="asset-debug-label feather-debug-label">FEATHER ASSET</div>
+      <div class="asset-load-fallback feather-load-fallback">FEATHER IMAGE FAILED TO LOAD</div>
       <div class="feather-particles">
         <span></span><span></span><span></span><span></span><span></span><span></span>
       </div>
@@ -622,6 +623,7 @@ function LoginRavenTransition({ onComplete, startElement, duration = 5000 }) {
       <img class="raven-asset raven-emergence" src="${LOGIN_RAVEN_ASSET}" alt="" decoding="async">
       <img class="raven-asset raven-flight" src="${LOGIN_RAVEN_ASSET}" alt="" decoding="async">
       <div class="asset-debug-label raven-debug-label">RAVEN ASSET</div>
+      <div class="asset-load-fallback raven-load-fallback">RAVEN IMAGE FAILED TO LOAD</div>
       <div class="raven-wake"></div>
       <div class="raven-wisps">
         <span></span><span></span><span></span><span></span>
@@ -638,6 +640,7 @@ function LoginRavenTransition({ onComplete, startElement, duration = 5000 }) {
   startElement?.classList.add("login-success-origin");
   els.authShell.classList.add("auth-shell-transitioning");
   document.body.classList.add("login-transition-active");
+  bindTransitionAssetFallbacks(overlay);
   document.body.append(overlay);
 
   window.setTimeout(() => {
@@ -649,6 +652,22 @@ function LoginRavenTransition({ onComplete, startElement, duration = 5000 }) {
   }, transitionDuration);
 
   return overlay;
+}
+
+function bindTransitionAssetFallbacks(overlay) {
+  const showFallback = (selector) => {
+    overlay.querySelector(selector)?.classList.add("visible");
+  };
+
+  overlay.querySelector(".feather-asset")?.addEventListener("error", () => {
+    showFallback(".feather-load-fallback");
+  });
+
+  overlay.querySelectorAll(".raven-asset").forEach((image) => {
+    image.addEventListener("error", () => {
+      showFallback(".raven-load-fallback");
+    });
+  });
 }
 
 function getLoginTransitionPath(startElement) {
