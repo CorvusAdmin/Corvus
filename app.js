@@ -550,14 +550,14 @@ function playLoginSuccessTransition() {
   return new Promise((resolve) => {
     LoginRavenTransition({
       startElement: els.loginForm.querySelector("button[type='submit']"),
-      duration: 3800,
+      duration: 5000,
       onComplete: resolve,
     });
   });
 }
 
 // Temporary inline raven component. Replace the SVG below with the final branded raven asset when it is ready.
-function LoginRavenTransition({ onComplete, startElement, duration = 3800 }) {
+function LoginRavenTransition({ onComplete, startElement, duration = 5000 }) {
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const overlay = document.createElement("div");
   const path = getLoginTransitionPath(startElement);
@@ -612,6 +612,7 @@ function LoginRavenTransition({ onComplete, startElement, duration = 3800 }) {
     <div class="feather-spirit" aria-hidden="true">
       <div class="feather-glow"></div>
       <img class="feather-asset" src="${LOGIN_FEATHER_ASSET}" alt="" decoding="async">
+      <div class="asset-debug-label feather-debug-label">FEATHER ASSET</div>
       <div class="feather-particles">
         <span></span><span></span><span></span><span></span><span></span><span></span>
       </div>
@@ -620,6 +621,7 @@ function LoginRavenTransition({ onComplete, startElement, duration = 3800 }) {
       <div class="raven-energy"></div>
       <img class="raven-asset raven-emergence" src="${LOGIN_RAVEN_ASSET}" alt="" decoding="async">
       <img class="raven-asset raven-flight" src="${LOGIN_RAVEN_ASSET}" alt="" decoding="async">
+      <div class="asset-debug-label raven-debug-label">RAVEN ASSET</div>
       <div class="raven-wake"></div>
       <div class="raven-wisps">
         <span></span><span></span><span></span><span></span>
@@ -657,9 +659,9 @@ function getLoginTransitionPath(startElement) {
   const rect = startElement?.getBoundingClientRect();
   const startX = rect ? rect.left + (rect.width * 0.42) : fallbackX;
   const startY = rect ? rect.top + (rect.height * 0.45) : fallbackY;
-  const featherWidth = Math.round(Math.min(430, Math.max(250, viewportWidth * 0.33)));
+  const featherWidth = Math.round(Math.min(720, Math.max(360, viewportWidth * 0.52), viewportWidth - 24));
   const featherHeight = Math.round(featherWidth * 0.67);
-  const ravenWidth = Math.round(Math.min(700, Math.max(390, viewportWidth * 0.58)));
+  const ravenWidth = Math.round(Math.min(1050, Math.max(560, viewportWidth * 0.82), viewportWidth - 24));
   const ravenHeight = Math.round(ravenWidth * 0.67);
   const centerX = Math.round(viewportWidth * 0.52 - ravenWidth / 2);
   const centerY = Math.round(viewportHeight * 0.43 - ravenHeight / 2);
