@@ -147,6 +147,7 @@ fieldset {
 
 .auth-card,
 .topbar,
+.user-debug-line,
 .save-notice,
 .metrics-grid,
 .workspace {
@@ -340,6 +341,18 @@ h2 {
   font-size: 0.78rem;
   font-weight: 850;
   padding: 8px 10px;
+}
+
+.user-debug-line {
+  border: 1px solid rgba(127, 212, 198, 0.18);
+  border-radius: var(--radius);
+  background: rgba(127, 212, 198, 0.07);
+  color: var(--teal-dark);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.35;
+  margin-bottom: 12px;
+  padding: 9px 11px;
 }
 
 .filter-button {

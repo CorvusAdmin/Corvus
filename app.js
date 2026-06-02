@@ -1,7 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 
-const STORAGE_KEY = "corvus-v1";
-const LEGACY_STORAGE_KEYS = ["pulseops-v1", "property-workload-planner-v1"];
 const DEFAULT_SCHEDULE_TITLE = "Corvus Planner";
 const METADATA_PRIORITY = "corvus-metadata";
 const TASK_PRIORITY = "corvus-task";
@@ -93,6 +91,7 @@ const els = {
   showLogin: document.querySelector("#showLogin"),
   authMessage: document.querySelector("#authMessage"),
   userEmail: document.querySelector("#userEmail"),
+  userDebugLine: document.querySelector("#userDebugLine"),
   logoutButton: document.querySelector("#logoutButton"),
   workDays: document.querySelector("#workDays"),
   workStart: document.querySelector("#workStart"),
@@ -150,35 +149,6 @@ async function initialize() {
   bindAuthEvents();
   setSmartDefaults();
   await initializeAuth();
-}
-
-function loadLegacyPlannerState() {
-  try {
-    const saved = JSON.parse(readSavedPlannerState());
-    if (!saved || typeof saved !== "object") return null;
-    return {
-      ...structuredClone(defaultState),
-      ...saved,
-      settings: { ...defaultState.settings, ...(saved.settings || {}) },
-      categories: normalizeCategories(saved.categories),
-      unavailable: Array.isArray(saved.unavailable) ? saved.unavailable : [],
-      tasks: Array.isArray(saved.tasks) ? saved.tasks : [],
-      filter: saved.filter || "open",
-      scheduleView: saved.scheduleView || "week",
-    };
-  } catch {
-    return null;
-  }
-}
-
-function readSavedPlannerState() {
-  try {
-    return [STORAGE_KEY, ...LEGACY_STORAGE_KEYS]
-      .map((key) => localStorage.getItem(key))
-      .find(Boolean) || null;
-  } catch {
-    return null;
-  }
 }
 
 function normalizeCategories(categories) {
@@ -496,6 +466,8 @@ function showLoggedOutView(mode) {
   currentSchedule = null;
   remoteReady = false;
   window.clearTimeout(remoteSaveTimer);
+  resetPlannerState();
+  setActiveUserDisplay(null);
   els.appShell.hidden = true;
   els.authShell.hidden = false;
   els.loginView.hidden = mode === "signup";
@@ -518,6 +490,25 @@ function setAuthMessage(message) {
   els.authMessage.textContent = message || "";
 }
 
+function setActiveUserDisplay(user) {
+  const email = user?.email || "";
+  const shortId = user?.id ? user.id.slice(0, 8) : "";
+  els.userEmail.textContent = email;
+  els.userDebugLine.textContent = user
+    ? `Logged in as: ${email} | User ID: ${shortId}`
+    : "";
+}
+
+function resetPlannerState() {
+  state = structuredClone(defaultState);
+  latestPlan = { segments: [], risks: [], unscheduled: [] };
+  saveWarning = "";
+  renderWorkDays();
+  hydrateForms();
+  setSmartDefaults();
+  render();
+}
+
 async function enterProtectedApp(user) {
   if (!user) {
     showLoggedOutView("login");
@@ -529,8 +520,12 @@ async function enterProtectedApp(user) {
     return;
   }
 
+  if (currentUser?.id && currentUser.id !== user.id) {
+    resetPlannerState();
+  }
+
   currentUser = user;
-  els.userEmail.textContent = user.email || "";
+  setActiveUserDisplay(user);
   setAuthMessage("");
   showProtectedView();
   await loadUserSchedule();
@@ -559,7 +554,7 @@ async function loadUserSchedule() {
       state = deserializeScheduleItems(data);
       saveWarning = "";
     } else {
-      state = loadLegacyPlannerState() || structuredClone(defaultState);
+      state = structuredClone(defaultState);
       saveWarning = "";
       remoteReady = true;
       isLoadingRemote = false;

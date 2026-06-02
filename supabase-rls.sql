@@ -84,29 +84,13 @@ using (auth.uid() = user_id);
 drop policy if exists "Users can insert their own schedule items" on public.schedule_items;
 create policy "Users can insert their own schedule items"
 on public.schedule_items for insert
-with check (
-  auth.uid() = user_id
-  and exists (
-    select 1
-    from public.schedules
-    where schedules.id = schedule_id
-      and schedules.user_id = auth.uid()
-  )
-);
+with check (auth.uid() = user_id);
 
 drop policy if exists "Users can update their own schedule items" on public.schedule_items;
 create policy "Users can update their own schedule items"
 on public.schedule_items for update
 using (auth.uid() = user_id)
-with check (
-  auth.uid() = user_id
-  and exists (
-    select 1
-    from public.schedules
-    where schedules.id = schedule_id
-      and schedules.user_id = auth.uid()
-  )
-);
+with check (auth.uid() = user_id);
 
 drop policy if exists "Users can delete their own schedule items" on public.schedule_items;
 create policy "Users can delete their own schedule items"
