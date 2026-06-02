@@ -75,6 +75,7 @@ let isLoadingRemote = false;
 let remoteSaveTimer = null;
 let remoteSaveInFlight = false;
 let pendingRemoteSave = false;
+let loginSuccessGateActive = false;
 
 const els = {
   authShell: document.querySelector("#authShell"),
@@ -378,16 +379,33 @@ function bindAuthEvents() {
   els.loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!requireSupabaseConfig()) return;
+    if (loginSuccessGateActive) return;
+    const loginButton = els.loginForm.querySelector("button[type='submit']");
+    loginButton.disabled = true;
     setAuthMessage("Logging in...");
+    loginSuccessGateActive = true;
     const { data, error } = await supabase.auth.signInWithPassword({
       email: els.loginEmail.value.trim(),
       password: els.loginPassword.value,
     });
     if (error) {
+      loginSuccessGateActive = false;
+      loginButton.disabled = false;
       setAuthMessage(error.message);
       return;
     }
-    await enterProtectedApp(data.session?.user || data.user);
+    const user = data.session?.user || data.user;
+    if (!user) {
+      loginSuccessGateActive = false;
+      loginButton.disabled = false;
+      setAuthMessage("Login succeeded, but the user session was not returned. Please refresh and try again.");
+      return;
+    }
+    setAuthMessage("");
+    await playLoginSuccessTransition();
+    loginSuccessGateActive = false;
+    await enterProtectedApp(user);
+    loginButton.disabled = false;
   });
 
   els.signupForm.addEventListener("submit", async (event) => {
@@ -433,7 +451,7 @@ async function initializeAuth() {
       showLoggedOutView("login");
       return;
     }
-    if (session?.user && event !== "INITIAL_SESSION") {
+    if (session?.user && event !== "INITIAL_SESSION" && !loginSuccessGateActive) {
       void enterProtectedApp(session.user);
     }
   });
@@ -502,6 +520,77 @@ function showProtectedView() {
 function setAuthMessage(message) {
   els.authMessage.hidden = !message;
   els.authMessage.textContent = message || "";
+}
+
+function playLoginSuccessTransition() {
+  return new Promise((resolve) => {
+    LoginRavenTransition({
+      startElement: els.loginForm.querySelector("button[type='submit']"),
+      onComplete: resolve,
+    });
+  });
+}
+
+// Temporary inline raven component. Replace the SVG below with the final branded raven asset when it is ready.
+function LoginRavenTransition({ onComplete, startElement }) {
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const overlay = document.createElement("div");
+  const { startX, startY, endX, endY } = getLoginTransitionPath(startElement);
+  const duration = prefersReducedMotion ? 520 : 1500;
+
+  overlay.className = `login-raven-transition${prefersReducedMotion ? " reduced-motion" : ""}`;
+  overlay.setAttribute("role", "status");
+  overlay.setAttribute("aria-live", "polite");
+  overlay.setAttribute("aria-label", "Login successful. Opening dashboard.");
+  overlay.style.setProperty("--raven-start-x", `${startX}px`);
+  overlay.style.setProperty("--raven-start-y", `${startY}px`);
+  overlay.style.setProperty("--raven-mid-x", `${endX - ((endX - startX) * 0.45)}px`);
+  overlay.style.setProperty("--raven-mid-y", `${endY + ((startY - endY) * 0.48) - 18}px`);
+  overlay.style.setProperty("--raven-end-x", `${endX}px`);
+  overlay.style.setProperty("--raven-end-y", `${endY}px`);
+  overlay.innerHTML = `
+    <div class="raven-flight" aria-hidden="true">
+      <div class="raven-trail"></div>
+      <div class="raven-particles">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <svg class="raven-svg" viewBox="0 0 124 78" focusable="false">
+        <path class="raven-wing raven-wing-back" d="M54 38 C34 28 20 13 5 9 C16 31 32 45 54 47 C68 48 79 44 91 36 C76 40 65 41 54 38 Z"></path>
+        <path class="raven-body" d="M38 47 C50 31 72 22 97 23 C105 23 113 20 121 14 C117 24 110 31 100 35 C90 43 75 51 55 56 C43 59 30 61 16 59 C22 54 30 51 38 47 Z"></path>
+        <path class="raven-wing raven-wing-front" d="M57 42 C43 35 35 23 30 9 C48 16 65 28 80 45 C68 44 61 43 57 42 Z"></path>
+        <path class="raven-head" d="M92 24 C101 14 112 11 124 9 C116 17 107 24 98 30 Z"></path>
+      </svg>
+    </div>
+  `;
+
+  els.authShell.classList.add("auth-shell-transitioning");
+  document.body.append(overlay);
+
+  window.setTimeout(() => {
+    overlay.remove();
+    els.authShell.classList.remove("auth-shell-transitioning");
+    onComplete?.();
+  }, duration);
+
+  return overlay;
+}
+
+function getLoginTransitionPath(startElement) {
+  const fallbackX = Math.round(window.innerWidth * 0.46);
+  const fallbackY = Math.round(window.innerHeight * 0.62);
+  const rect = startElement?.getBoundingClientRect();
+  const startX = rect ? rect.left + (rect.width * 0.42) : fallbackX;
+  const startY = rect ? rect.top + (rect.height * 0.45) : fallbackY;
+  return {
+    startX,
+    startY,
+    endX: Math.min(window.innerWidth - 76, startX + Math.max(260, window.innerWidth * 0.28)),
+    endY: Math.max(58, startY - Math.max(220, window.innerHeight * 0.34)),
+  };
 }
 
 function setActiveUserDisplay(user) {

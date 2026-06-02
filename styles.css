@@ -62,6 +62,15 @@ button:hover {
   transform: translateY(-1px);
 }
 
+button:disabled {
+  cursor: default;
+  opacity: 0.68;
+}
+
+button:disabled:hover {
+  transform: none;
+}
+
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
@@ -230,6 +239,130 @@ fieldset {
   font-weight: 750;
   line-height: 1.35;
   padding: 11px 13px;
+}
+
+.auth-shell.auth-shell-transitioning .auth-card {
+  animation: authCardSuccessFade 680ms ease forwards;
+}
+
+.login-raven-transition {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 58% 38%, rgba(143, 166, 217, 0.15), transparent 34%),
+    linear-gradient(135deg, rgba(6, 9, 10, 0.20), rgba(6, 9, 10, 0.72));
+  animation: ravenOverlayFade 1500ms ease forwards;
+}
+
+.raven-flight {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 96px;
+  height: 72px;
+  transform: translate(var(--raven-start-x), var(--raven-start-y)) scale(0.72) rotate(-8deg);
+  animation: ravenFlight 1500ms cubic-bezier(0.22, 0.84, 0.28, 1) forwards;
+  filter:
+    drop-shadow(0 0 12px rgba(143, 166, 217, 0.38))
+    drop-shadow(0 0 28px rgba(127, 212, 198, 0.14));
+}
+
+.raven-svg {
+  position: relative;
+  z-index: 2;
+  width: 96px;
+  height: 72px;
+  overflow: visible;
+}
+
+.raven-svg path {
+  fill: #05090a;
+  stroke: rgba(184, 238, 228, 0.20);
+  stroke-width: 0.7;
+}
+
+.raven-wing {
+  transform-origin: 57px 43px;
+  animation: ravenWingFlap 360ms ease-in-out 4 alternate;
+}
+
+.raven-wing-back {
+  fill: #081011;
+  opacity: 0.9;
+}
+
+.raven-wing-front {
+  fill: #020506;
+}
+
+.raven-head {
+  fill: #020506;
+}
+
+.raven-trail {
+  position: absolute;
+  z-index: 1;
+  left: -118px;
+  top: 37px;
+  width: 128px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(236, 241, 235, 0.14), rgba(143, 166, 217, 0.42), transparent);
+  box-shadow: 0 0 22px rgba(143, 166, 217, 0.28);
+  transform-origin: right center;
+  animation: ravenTrailPulse 1500ms ease forwards;
+}
+
+.raven-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.raven-particles span {
+  position: absolute;
+  left: 8px;
+  top: 34px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(236, 241, 235, 0.82);
+  box-shadow: 0 0 10px rgba(184, 238, 228, 0.42);
+  opacity: 0;
+  animation: ravenParticle 1180ms ease-out forwards;
+}
+
+.raven-particles span:nth-child(1) {
+  --particle-x: -42px;
+  --particle-y: 18px;
+  animation-delay: 120ms;
+}
+
+.raven-particles span:nth-child(2) {
+  --particle-x: -74px;
+  --particle-y: -9px;
+  animation-delay: 250ms;
+}
+
+.raven-particles span:nth-child(3) {
+  --particle-x: -102px;
+  --particle-y: 29px;
+  animation-delay: 360ms;
+}
+
+.raven-particles span:nth-child(4) {
+  --particle-x: -58px;
+  --particle-y: 43px;
+  animation-delay: 480ms;
+}
+
+.raven-particles span:nth-child(5) {
+  --particle-x: -126px;
+  --particle-y: 4px;
+  animation-delay: 590ms;
 }
 
 .topbar {
@@ -1010,6 +1143,102 @@ h2 {
 
 .empty-state strong {
   color: #f4f7f1;
+}
+
+@keyframes authCardSuccessFade {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+    filter: blur(3px);
+  }
+}
+
+@keyframes ravenOverlayFade {
+  0% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes ravenFlight {
+  0% {
+    opacity: 0;
+    transform: translate(var(--raven-start-x), var(--raven-start-y)) scale(0.64) rotate(-10deg);
+  }
+  16% {
+    opacity: 1;
+  }
+  52% {
+    transform: translate(var(--raven-mid-x), var(--raven-mid-y)) scale(0.86) rotate(-2deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--raven-end-x), var(--raven-end-y)) scale(1.02) rotate(8deg);
+  }
+}
+
+@keyframes ravenWingFlap {
+  0% {
+    transform: rotate(-4deg) scaleY(0.93);
+  }
+  100% {
+    transform: rotate(7deg) scaleY(1.06);
+  }
+}
+
+@keyframes ravenTrailPulse {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.2);
+  }
+  30% {
+    opacity: 0.82;
+  }
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes ravenParticle {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.4);
+  }
+  28% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--particle-x), var(--particle-y)) scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-shell.auth-shell-transitioning .auth-card {
+    animation: authCardSuccessFade 420ms ease forwards;
+  }
+
+  .login-raven-transition {
+    animation: ravenOverlayFade 520ms ease forwards;
+  }
+
+  .login-raven-transition .raven-flight {
+    display: none;
+  }
 }
 
 @media (max-width: 1380px) {
