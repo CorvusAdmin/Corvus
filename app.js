@@ -87,6 +87,7 @@ const els = {
   loginPassword: document.querySelector("#loginPassword"),
   signupEmail: document.querySelector("#signupEmail"),
   signupPassword: document.querySelector("#signupPassword"),
+  signupPasswordError: document.querySelector("#signupPasswordError"),
   showSignup: document.querySelector("#showSignup"),
   showLogin: document.querySelector("#showLogin"),
   authMessage: document.querySelector("#authMessage"),
@@ -365,6 +366,14 @@ function bindAuthEvents() {
   els.showSignup.addEventListener("click", () => navigateAuth("signup"));
   els.showLogin.addEventListener("click", () => navigateAuth("login"));
   window.addEventListener("hashchange", renderAuthRoute);
+  document.querySelectorAll("[data-password-toggle]").forEach((button) => {
+    button.addEventListener("click", () => togglePasswordVisibility(button));
+  });
+  els.signupPassword.addEventListener("input", () => {
+    if (isSignupPasswordValid(els.signupPassword.value)) {
+      setSignupPasswordError(false);
+    }
+  });
 
   els.loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -384,6 +393,11 @@ function bindAuthEvents() {
   els.signupForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!requireSupabaseConfig()) return;
+    if (!isSignupPasswordValid(els.signupPassword.value)) {
+      setSignupPasswordError(true);
+      return;
+    }
+    setSignupPasswordError(false);
     setAuthMessage("Creating account...");
     const { data, error } = await supabase.auth.signUp({
       email: els.signupEmail.value.trim(),
@@ -497,6 +511,29 @@ function setActiveUserDisplay(user) {
   els.userDebugLine.textContent = user
     ? `Logged in as: ${email} | User ID: ${shortId}`
     : "";
+}
+
+function togglePasswordVisibility(button) {
+  const input = document.querySelector(`#${button.dataset.passwordToggle}`);
+  if (!input) return;
+
+  const shouldShow = input.type === "password";
+  input.type = shouldShow ? "text" : "password";
+  button.textContent = shouldShow ? "Hide" : "Show";
+  button.setAttribute("aria-pressed", String(shouldShow));
+  button.setAttribute("aria-label", `${shouldShow ? "Hide" : "Show"} password`);
+}
+
+function isSignupPasswordValid(password) {
+  return password.length >= 6
+    && /[a-z]/i.test(password)
+    && /\d/.test(password);
+}
+
+function setSignupPasswordError(shouldShow) {
+  els.signupPasswordError.hidden = !shouldShow;
+  els.signupPassword.setAttribute("aria-invalid", String(shouldShow));
+  if (shouldShow) setAuthMessage("");
 }
 
 function resetPlannerState() {

@@ -25,7 +25,10 @@
         </label>
         <label>
           Password
-          <input id="loginPassword" type="password" autocomplete="current-password" required>
+          <span class="password-control">
+            <input id="loginPassword" type="password" autocomplete="current-password" required>
+            <button class="password-toggle" type="button" data-password-toggle="loginPassword" aria-controls="loginPassword" aria-pressed="false" aria-label="Show password">Show</button>
+          </span>
         </label>
         <button class="primary-button" type="submit">Log in</button>
       </form>
@@ -49,7 +52,12 @@
         </label>
         <label>
           Password
-          <input id="signupPassword" type="password" autocomplete="new-password" minlength="6" required>
+          <span class="password-control">
+            <input id="signupPassword" type="password" autocomplete="new-password" minlength="6" aria-describedby="signupPasswordHelp signupPasswordError" required>
+            <button class="password-toggle" type="button" data-password-toggle="signupPassword" aria-controls="signupPassword" aria-pressed="false" aria-label="Show password">Show</button>
+          </span>
+          <span class="field-help" id="signupPasswordHelp">Password must be at least 6 characters and include both letters and numbers.</span>
+          <span class="field-error" id="signupPasswordError" hidden>Please use at least 6 characters with both letters and numbers.</span>
         </label>
         <button class="primary-button" type="submit">Sign up</button>
       </form>

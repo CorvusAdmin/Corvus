@@ -86,6 +86,51 @@ textarea::placeholder {
   color: #66736d;
 }
 
+.password-control {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.password-control input {
+  padding-right: 68px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  min-height: 30px;
+  transform: translateY(-50%);
+  border: 1px solid rgba(127, 212, 198, 0.18);
+  border-radius: 6px;
+  background: rgba(127, 212, 198, 0.08);
+  color: var(--teal-dark);
+  font-size: 0.78rem;
+  font-weight: 850;
+  padding: 0 9px;
+}
+
+.password-toggle:hover {
+  transform: translateY(-50%);
+  background: rgba(127, 212, 198, 0.14);
+}
+
+.field-help,
+.field-error {
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.field-help {
+  color: var(--muted);
+}
+
+.field-error {
+  color: #f0b2a7;
+}
+
 textarea {
   resize: vertical;
 }
