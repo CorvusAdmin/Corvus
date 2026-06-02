@@ -280,7 +280,7 @@ body.login-transition-active {
     radial-gradient(circle at 54% 42%, rgba(0, 240, 209, 0.11), transparent 34%),
     radial-gradient(circle at 24% 72%, rgba(143, 166, 217, 0.08), transparent 30%),
     linear-gradient(135deg, rgba(3, 7, 8, 0.32), rgba(1, 3, 5, 0.91));
-  animation: transitionVeil 5000ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: transitionVeil 4000ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .raven-veil {
@@ -290,7 +290,7 @@ body.login-transition-active {
     linear-gradient(180deg, rgba(2, 5, 6, 0.20), rgba(2, 5, 6, 0.58)),
     radial-gradient(circle at 54% 42%, transparent 20%, rgba(0, 0, 0, 0.42));
   z-index: 0;
-  animation: ravenVignette 5000ms ease forwards;
+  animation: ravenVignette 4000ms ease forwards;
 }
 
 .button-origin-glow,
@@ -342,7 +342,7 @@ body.login-transition-active {
   filter:
     drop-shadow(0 0 12px rgba(0, 240, 209, 0.24))
     drop-shadow(0 0 24px rgba(143, 166, 217, 0.10));
-  animation: featherAssetRise 3300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: featherAssetRise 2550ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .feather-asset,
@@ -357,6 +357,19 @@ body.login-transition-active {
   user-select: none;
   z-index: 26;
   filter: none;
+  transform-origin: 48% 64%;
+}
+
+.feather-main {
+  animation: featherImageLife 2550ms ease-in-out forwards;
+}
+
+.feather-echo {
+  opacity: 0;
+  z-index: 25;
+  filter: blur(4px) saturate(1.16);
+  transform: translate(-10px, 12px) scale(1.03) rotate(-2deg);
+  animation: featherEchoLife 2550ms ease-in-out forwards;
 }
 
 .feather-glow {
@@ -367,6 +380,33 @@ body.login-transition-active {
   filter: blur(8px);
   animation: featherGlowPulse 1850ms ease-in-out forwards;
 }
+
+.feather-wisps {
+  position: absolute;
+  inset: 0;
+  z-index: 27;
+  pointer-events: none;
+}
+
+.feather-wisps span {
+  position: absolute;
+  left: 24%;
+  top: 70%;
+  width: var(--feather-wisp-width);
+  height: 26px;
+  border-top: 1px solid rgba(0, 240, 209, 0.26);
+  border-radius: 50%;
+  filter: blur(0.5px) drop-shadow(0 0 11px rgba(0, 240, 209, 0.24));
+  opacity: 0;
+  transform-origin: right center;
+  animation: featherWispDrift 1500ms ease-out forwards;
+  animation-delay: var(--feather-wisp-delay);
+}
+
+.feather-wisps span:nth-child(1) { --feather-wisp-width: 34%; --feather-wisp-delay: 720ms; --feather-wisp-r: -16deg; }
+.feather-wisps span:nth-child(2) { --feather-wisp-width: 44%; --feather-wisp-delay: 920ms; --feather-wisp-r: 8deg; }
+.feather-wisps span:nth-child(3) { --feather-wisp-width: 26%; --feather-wisp-delay: 1180ms; --feather-wisp-r: 20deg; }
+.feather-wisps span:nth-child(4) { --feather-wisp-width: 38%; --feather-wisp-delay: 1480ms; --feather-wisp-r: -4deg; }
 
 .feather-particles {
   position: absolute;
@@ -393,6 +433,8 @@ body.login-transition-active {
 .feather-particles span:nth-child(4) { --fp-x: -54px; --fp-y: -24px; animation-delay: 1040ms; }
 .feather-particles span:nth-child(5) { --fp-x: -128px; --fp-y: -10px; animation-delay: 1150ms; }
 .feather-particles span:nth-child(6) { --fp-x: -86px; --fp-y: 86px; animation-delay: 1260ms; }
+.feather-particles span:nth-child(7) { --fp-x: -148px; --fp-y: 54px; animation-delay: 1410ms; }
+.feather-particles span:nth-child(8) { --fp-x: -116px; --fp-y: -48px; animation-delay: 1580ms; }
 
 .transformation-aura {
   width: min(520px, 44vw);
@@ -400,7 +442,7 @@ body.login-transition-active {
   transform: translate(calc(var(--raven-form-x) + 8px), calc(var(--raven-form-y) + 24px));
   opacity: 0;
   z-index: 8;
-  animation: transformationAura 5000ms ease forwards;
+  animation: transformationAura 4000ms ease forwards;
 }
 
 .transformation-aura span {
@@ -450,7 +492,7 @@ body.login-transition-active {
   filter:
     drop-shadow(0 0 14px rgba(0, 240, 209, 0.24))
     drop-shadow(0 0 30px rgba(143, 166, 217, 0.10));
-  animation: ravenAssetFlight 5000ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: ravenAssetFlight 4000ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .raven-asset {
@@ -458,45 +500,47 @@ body.login-transition-active {
   filter: none;
 }
 
+.raven-glow {
+  z-index: 29;
+  opacity: 0;
+  filter: blur(18px) saturate(1.35) brightness(1.16);
+  transform: scale(1.07);
+  animation: ravenGlowPulse 4000ms ease forwards;
+}
+
+.raven-echo {
+  z-index: 31;
+  opacity: 0;
+  filter: blur(3px) saturate(1.12);
+  transform: translate(-22px, 18px) scale(1.02) rotate(-1deg);
+  animation: ravenEchoDrift 4000ms ease forwards;
+}
+
 .raven-emergence {
   opacity: 0;
-  animation: ravenAssetEmerge 5000ms ease forwards;
+  animation: ravenAssetEmerge 4000ms ease forwards;
 }
 
 .raven-flight {
   opacity: 0;
-  animation: ravenAssetPresence 5000ms ease forwards;
+  animation:
+    ravenAssetPresence 4000ms ease forwards,
+    ravenLivingShimmer 1050ms ease-in-out 2200ms 2 alternate;
 }
 
-.asset-debug-label {
+.raven-edge-shimmer {
   position: absolute;
-  z-index: 40;
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  border: 1px solid rgba(0, 240, 209, 0.72);
-  border-radius: 999px;
-  background: rgba(2, 7, 8, 0.86);
-  box-shadow: 0 0 20px rgba(0, 240, 209, 0.24);
-  color: #bffbf2;
-  font-size: 0.76rem;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  line-height: 1;
-  padding: 6px 10px;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.feather-debug-label {
-  left: 18%;
-  top: 8%;
-}
-
-.raven-debug-label {
-  left: 50%;
-  top: 8%;
-  transform: translateX(-50%);
+  inset: 12% 10% 10% 16%;
+  z-index: 33;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 62% 38%, rgba(0, 240, 209, 0.18), transparent 28%),
+    linear-gradient(115deg, transparent 18%, rgba(184, 238, 228, 0.18) 45%, transparent 68%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  filter: blur(8px);
+  transform: rotate(-12deg) scale(0.92);
+  animation: ravenEdgeShimmer 4000ms ease forwards;
 }
 
 .asset-load-fallback {
@@ -543,7 +587,7 @@ body.login-transition-active {
   filter: blur(10px);
   opacity: 0;
   z-index: 24;
-  animation: ravenEnergyWake 5000ms ease forwards;
+  animation: ravenEnergyWake 4000ms ease forwards;
 }
 
 .raven-wake {
@@ -559,7 +603,7 @@ body.login-transition-active {
   transform-origin: right center;
   opacity: 0;
   z-index: 22;
-  animation: ravenWakeRitual 5000ms ease forwards;
+  animation: ravenWakeRitual 4000ms ease forwards;
 }
 
 .raven-wisps {
@@ -584,10 +628,10 @@ body.login-transition-active {
   animation-delay: var(--wisp-delay);
 }
 
-.raven-wisps span:nth-child(1) { --wisp-y: 42%; --wisp-w: 32%; --wisp-r: -10deg; --wisp-delay: 2060ms; }
-.raven-wisps span:nth-child(2) { --wisp-y: 58%; --wisp-w: 38%; --wisp-r: 6deg; --wisp-delay: 2220ms; }
-.raven-wisps span:nth-child(3) { --wisp-y: 71%; --wisp-w: 27%; --wisp-r: 16deg; --wisp-delay: 2380ms; }
-.raven-wisps span:nth-child(4) { --wisp-y: 28%; --wisp-w: 24%; --wisp-r: -22deg; --wisp-delay: 2540ms; }
+.raven-wisps span:nth-child(1) { --wisp-y: 42%; --wisp-w: 32%; --wisp-r: -10deg; --wisp-delay: 1840ms; }
+.raven-wisps span:nth-child(2) { --wisp-y: 58%; --wisp-w: 38%; --wisp-r: 6deg; --wisp-delay: 2020ms; }
+.raven-wisps span:nth-child(3) { --wisp-y: 71%; --wisp-w: 27%; --wisp-r: 16deg; --wisp-delay: 2220ms; }
+.raven-wisps span:nth-child(4) { --wisp-y: 28%; --wisp-w: 24%; --wisp-r: -22deg; --wisp-delay: 2400ms; }
 
 .raven-particles,
 .arrival-dust {
@@ -614,20 +658,20 @@ body.login-transition-active {
 }
 
 .raven-particles span:nth-child(1) { --particle-x: -66px; --particle-y: 18px; animation-delay: 1840ms; }
-.raven-particles span:nth-child(2) { --particle-x: -116px; --particle-y: -12px; animation-delay: 1980ms; }
-.raven-particles span:nth-child(3) { --particle-x: -148px; --particle-y: 34px; animation-delay: 2120ms; }
-.raven-particles span:nth-child(4) { --particle-x: -88px; --particle-y: 58px; animation-delay: 2260ms; }
-.raven-particles span:nth-child(5) { --particle-x: -176px; --particle-y: 4px; animation-delay: 2400ms; }
-.raven-particles span:nth-child(6) { --particle-x: -128px; --particle-y: -42px; animation-delay: 2540ms; }
-.raven-particles span:nth-child(7) { --particle-x: -42px; --particle-y: -30px; animation-delay: 2680ms; }
-.raven-particles span:nth-child(8) { --particle-x: -188px; --particle-y: 68px; animation-delay: 2820ms; }
+.raven-particles span:nth-child(2) { --particle-x: -116px; --particle-y: -12px; animation-delay: 1940ms; }
+.raven-particles span:nth-child(3) { --particle-x: -148px; --particle-y: 34px; animation-delay: 2040ms; }
+.raven-particles span:nth-child(4) { --particle-x: -88px; --particle-y: 58px; animation-delay: 2160ms; }
+.raven-particles span:nth-child(5) { --particle-x: -176px; --particle-y: 4px; animation-delay: 2280ms; }
+.raven-particles span:nth-child(6) { --particle-x: -128px; --particle-y: -42px; animation-delay: 2420ms; }
+.raven-particles span:nth-child(7) { --particle-x: -42px; --particle-y: -30px; animation-delay: 2560ms; }
+.raven-particles span:nth-child(8) { --particle-x: -188px; --particle-y: 68px; animation-delay: 2700ms; }
 
 .waypoint-field {
   position: absolute;
   inset: 7vh 9vw;
   z-index: 3;
   opacity: 0;
-  animation: waypointAwaken 5000ms ease forwards;
+  animation: waypointAwaken 4000ms ease forwards;
 }
 
 .waypoint-field svg {
@@ -682,7 +726,7 @@ body.login-transition-active {
     0 0 38px rgba(0, 240, 209, 0.08);
   opacity: 0;
   transform: translateY(18px) scale(0.98);
-  animation: dashboardVisionReveal 5000ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: dashboardVisionReveal 4000ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .dashboard-vision span {
@@ -700,7 +744,7 @@ body.login-transition-active {
   top: 10%;
   width: 34%;
   height: 24%;
-  animation-delay: 2860ms;
+  animation-delay: 2680ms;
 }
 
 .dashboard-vision span:nth-child(2) {
@@ -708,7 +752,7 @@ body.login-transition-active {
   top: 10%;
   width: 42%;
   height: 24%;
-  animation-delay: 2990ms;
+  animation-delay: 2810ms;
 }
 
 .dashboard-vision span:nth-child(3) {
@@ -716,7 +760,7 @@ body.login-transition-active {
   bottom: 10%;
   width: 42%;
   height: 48%;
-  animation-delay: 3120ms;
+  animation-delay: 2940ms;
 }
 
 .dashboard-vision span:nth-child(4) {
@@ -724,7 +768,7 @@ body.login-transition-active {
   bottom: 10%;
   width: 42%;
   height: 48%;
-  animation-delay: 3250ms;
+  animation-delay: 3070ms;
 }
 
 .arrival-dust {
@@ -737,15 +781,15 @@ body.login-transition-active {
 
 .arrival-dust span {
   animation: arrivalDust 900ms ease-out forwards;
-  animation-delay: 3320ms;
+  animation-delay: 3180ms;
 }
 
 .arrival-dust span:nth-child(1) { --dust-x: -42px; --dust-y: 20px; }
-.arrival-dust span:nth-child(2) { --dust-x: 28px; --dust-y: 18px; animation-delay: 3400ms; }
-.arrival-dust span:nth-child(3) { --dust-x: -18px; --dust-y: -36px; animation-delay: 3480ms; }
-.arrival-dust span:nth-child(4) { --dust-x: 46px; --dust-y: -28px; animation-delay: 3560ms; }
-.arrival-dust span:nth-child(5) { --dust-x: -64px; --dust-y: -10px; animation-delay: 3640ms; }
-.arrival-dust span:nth-child(6) { --dust-x: 8px; --dust-y: 46px; animation-delay: 3720ms; }
+.arrival-dust span:nth-child(2) { --dust-x: 28px; --dust-y: 18px; animation-delay: 3260ms; }
+.arrival-dust span:nth-child(3) { --dust-x: -18px; --dust-y: -36px; animation-delay: 3340ms; }
+.arrival-dust span:nth-child(4) { --dust-x: 46px; --dust-y: -28px; animation-delay: 3420ms; }
+.arrival-dust span:nth-child(5) { --dust-x: -64px; --dust-y: -10px; animation-delay: 3500ms; }
+.arrival-dust span:nth-child(6) { --dust-x: 8px; --dust-y: 46px; animation-delay: 3580ms; }
 
 .topbar {
   display: flex;
@@ -1663,6 +1707,49 @@ h2 {
   }
 }
 
+@keyframes featherImageLife {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(0, 240, 209, 0));
+    transform: translate(0, 0) scale(0.98) rotate(0deg) skewX(0deg);
+  }
+  28% {
+    filter: drop-shadow(0 0 16px rgba(0, 240, 209, 0.30));
+    transform: translate(4px, -5px) scale(1.01) rotate(-1.4deg) skewX(-1deg);
+  }
+  58% {
+    filter: drop-shadow(0 0 24px rgba(0, 240, 209, 0.42));
+    transform: translate(-5px, 4px) scale(1.035) rotate(1.8deg) skewX(0.8deg);
+  }
+  82% {
+    filter: drop-shadow(0 0 18px rgba(0, 240, 209, 0.32));
+    transform: translate(8px, -2px) scale(0.98) rotate(-3deg) skewX(-1.2deg);
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(0, 240, 209, 0));
+    transform: translate(16px, -8px) scale(0.92) rotate(-6deg) skewX(0deg);
+  }
+}
+
+@keyframes featherEchoLife {
+  0%,
+  12% {
+    opacity: 0;
+    transform: translate(-10px, 12px) scale(1.00) rotate(-2deg);
+  }
+  32% {
+    opacity: 0.38;
+    transform: translate(-18px, 18px) scale(1.05) rotate(-4deg);
+  }
+  64% {
+    opacity: 0.24;
+    transform: translate(-30px, 22px) scale(1.09) rotate(-2deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-44px, 30px) scale(1.12) rotate(1deg);
+  }
+}
+
 @keyframes featherGlowPulse {
   0% {
     opacity: 0;
@@ -1672,6 +1759,20 @@ h2 {
   }
   100% {
     opacity: 0;
+  }
+}
+
+@keyframes featherWispDrift {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--feather-wisp-r, -8deg)) scaleX(0.12) translateX(0);
+  }
+  30% {
+    opacity: 0.72;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--feather-wisp-r, -8deg)) scaleX(1) translateX(-58px);
   }
 }
 
@@ -1722,27 +1823,71 @@ h2 {
 @keyframes ravenAssetFlight {
   0% {
     opacity: 0;
-    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.34) rotate(-7deg);
+    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.34) rotate(-7deg) skewY(0deg);
   }
   42% {
     opacity: 0;
-    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.34) rotate(-7deg);
+    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.34) rotate(-7deg) skewY(0deg);
   }
   54% {
     opacity: 0.85;
-    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.72) rotate(-4deg);
+    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.72) rotate(-4deg) skewY(-0.6deg);
   }
   66% {
     opacity: 1;
-    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.92) rotate(-1deg);
+    transform: translate(var(--raven-form-x), var(--raven-form-y)) scale(0.92) rotate(-1deg) skewY(0deg);
   }
-  90% {
+  82% {
     opacity: 1;
-    transform: translate(var(--raven-center-x), var(--raven-center-y)) scale(1) rotate(1deg);
+    transform: translate(calc(var(--raven-center-x) - 24px), calc(var(--raven-center-y) - 34px)) scale(1.03) rotate(2deg) skewY(-0.8deg);
+  }
+  92% {
+    opacity: 1;
+    transform: translate(var(--raven-center-x), var(--raven-center-y)) scale(1.06) rotate(4deg) skewY(0.6deg);
   }
   100% {
-    opacity: 0.25;
-    transform: translate(var(--raven-exit-x), var(--raven-exit-y)) scale(0.78) rotate(10deg);
+    opacity: 0;
+    transform: translate(var(--raven-exit-x), var(--raven-exit-y)) scale(0.82) rotate(10deg) skewY(0deg);
+  }
+}
+
+@keyframes ravenGlowPulse {
+  0%,
+  44% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  58% {
+    opacity: 0.42;
+    transform: scale(1.04);
+  }
+  78% {
+    opacity: 0.58;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.16);
+  }
+}
+
+@keyframes ravenEchoDrift {
+  0%,
+  50% {
+    opacity: 0;
+    transform: translate(-10px, 10px) scale(0.98) rotate(-2deg);
+  }
+  66% {
+    opacity: 0.28;
+    transform: translate(-24px, 18px) scale(1.02) rotate(-3deg);
+  }
+  86% {
+    opacity: 0.18;
+    transform: translate(-38px, 28px) scale(1.05) rotate(-1deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-58px, 42px) scale(1.09) rotate(2deg);
   }
 }
 
@@ -1786,7 +1931,42 @@ h2 {
     opacity: 1;
   }
   100% {
-    opacity: 0.25;
+    opacity: 0;
+  }
+}
+
+@keyframes ravenLivingShimmer {
+  0% {
+    filter: drop-shadow(0 0 8px rgba(0, 240, 209, 0.18));
+    transform: translate(0, 0) scale(1) rotate(0deg);
+  }
+  50% {
+    filter: drop-shadow(0 0 22px rgba(0, 240, 209, 0.36));
+    transform: translate(3px, -4px) scale(1.012) rotate(-0.8deg);
+  }
+  100% {
+    filter: drop-shadow(0 0 12px rgba(0, 240, 209, 0.22));
+    transform: translate(-2px, 3px) scale(0.998) rotate(0.6deg);
+  }
+}
+
+@keyframes ravenEdgeShimmer {
+  0%,
+  48% {
+    opacity: 0;
+    transform: rotate(-12deg) scale(0.88) translateX(-20px);
+  }
+  64% {
+    opacity: 0.42;
+    transform: rotate(-10deg) scale(1) translateX(0);
+  }
+  84% {
+    opacity: 0.26;
+    transform: rotate(-7deg) scale(1.08) translateX(24px);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(-4deg) scale(1.16) translateX(52px);
   }
 }
 
@@ -1851,12 +2031,12 @@ h2 {
 
 @keyframes waypointAwaken {
   0%,
-  50% {
+  54% {
     opacity: 0;
   }
-  66%,
-  86% {
-    opacity: 0.9;
+  68%,
+  90% {
+    opacity: 0.82;
   }
   100% {
     opacity: 0;
@@ -1891,11 +2071,11 @@ h2 {
 
 @keyframes dashboardVisionReveal {
   0%,
-  66% {
+  64% {
     opacity: 0;
     transform: translateY(18px) scale(0.98);
   }
-  84% {
+  86% {
     opacity: 0.82;
   }
   100% {

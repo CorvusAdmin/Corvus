@@ -550,14 +550,14 @@ function playLoginSuccessTransition() {
   return new Promise((resolve) => {
     LoginRavenTransition({
       startElement: els.loginForm.querySelector("button[type='submit']"),
-      duration: 3800,
+      duration: 4000,
       onComplete: resolve,
     });
   });
 }
 
 // Temporary inline raven component. Replace the SVG below with the final branded raven asset when it is ready.
-function LoginRavenTransition({ onComplete, startElement, duration = 3800 }) {
+function LoginRavenTransition({ onComplete, startElement, duration = 4000 }) {
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const overlay = document.createElement("div");
   const path = getLoginTransitionPath(startElement);
@@ -611,18 +611,23 @@ function LoginRavenTransition({ onComplete, startElement, duration = 3800 }) {
     </div>
     <div class="feather-spirit" aria-hidden="true">
       <div class="feather-glow"></div>
-      <img class="feather-asset" src="${LOGIN_FEATHER_ASSET}" alt="" decoding="async">
-      <div class="asset-debug-label feather-debug-label">FEATHER ASSET</div>
+      <img class="feather-asset feather-echo" src="${LOGIN_FEATHER_ASSET}" alt="" decoding="async">
+      <img class="feather-asset feather-main" src="${LOGIN_FEATHER_ASSET}" alt="" decoding="async">
+      <div class="feather-wisps">
+        <span></span><span></span><span></span><span></span>
+      </div>
       <div class="asset-load-fallback feather-load-fallback">FEATHER IMAGE FAILED TO LOAD</div>
       <div class="feather-particles">
-        <span></span><span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
       </div>
     </div>
     <div class="spirit-raven" aria-hidden="true">
       <div class="raven-energy"></div>
+      <div class="raven-edge-shimmer"></div>
+      <img class="raven-asset raven-glow" src="${LOGIN_RAVEN_ASSET}" alt="" decoding="async">
+      <img class="raven-asset raven-echo" src="${LOGIN_RAVEN_ASSET}" alt="" decoding="async">
       <img class="raven-asset raven-emergence" src="${LOGIN_RAVEN_ASSET}" alt="" decoding="async">
       <img class="raven-asset raven-flight" src="${LOGIN_RAVEN_ASSET}" alt="" decoding="async">
-      <div class="asset-debug-label raven-debug-label">RAVEN ASSET</div>
       <div class="asset-load-fallback raven-load-fallback">RAVEN IMAGE FAILED TO LOAD</div>
       <div class="raven-wake"></div>
       <div class="raven-wisps">
