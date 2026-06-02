@@ -76,6 +76,7 @@ let remoteSaveTimer = null;
 let remoteSaveInFlight = false;
 let pendingRemoteSave = false;
 let loginSuccessGateActive = false;
+let dashboardArrivalPending = false;
 
 const els = {
   authShell: document.querySelector("#authShell"),
@@ -402,10 +403,15 @@ function bindAuthEvents() {
       return;
     }
     setAuthMessage("");
-    await playLoginSuccessTransition();
-    loginSuccessGateActive = false;
-    await enterProtectedApp(user);
-    loginButton.disabled = false;
+    try {
+      await playLoginSuccessTransition();
+      dashboardArrivalPending = true;
+      loginSuccessGateActive = false;
+      await enterProtectedApp(user);
+    } finally {
+      loginSuccessGateActive = false;
+      loginButton.disabled = false;
+    }
   });
 
   els.signupForm.addEventListener("submit", async (event) => {
@@ -512,6 +518,13 @@ function showLoggedOutView(mode) {
 function showProtectedView() {
   els.authShell.hidden = true;
   els.appShell.hidden = false;
+  if (dashboardArrivalPending) {
+    dashboardArrivalPending = false;
+    els.appShell.classList.add("dashboard-arriving");
+    window.setTimeout(() => {
+      els.appShell.classList.remove("dashboard-arriving");
+    }, 950);
+  }
   if (window.location.hash !== "#schedule") {
     history.replaceState(null, "", "#schedule");
   }
@@ -526,55 +539,103 @@ function playLoginSuccessTransition() {
   return new Promise((resolve) => {
     LoginRavenTransition({
       startElement: els.loginForm.querySelector("button[type='submit']"),
+      duration: 3600,
       onComplete: resolve,
     });
   });
 }
 
 // Temporary inline raven component. Replace the SVG below with the final branded raven asset when it is ready.
-function LoginRavenTransition({ onComplete, startElement }) {
+function LoginRavenTransition({ onComplete, startElement, duration = 3600 }) {
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const overlay = document.createElement("div");
-  const { startX, startY, endX, endY } = getLoginTransitionPath(startElement);
-  const duration = prefersReducedMotion ? 520 : 1500;
+  const path = getLoginTransitionPath(startElement);
+  const transitionDuration = prefersReducedMotion ? 460 : duration;
 
   overlay.className = `login-raven-transition${prefersReducedMotion ? " reduced-motion" : ""}`;
   overlay.setAttribute("role", "status");
   overlay.setAttribute("aria-live", "polite");
   overlay.setAttribute("aria-label", "Login successful. Opening dashboard.");
-  overlay.style.setProperty("--raven-start-x", `${startX}px`);
-  overlay.style.setProperty("--raven-start-y", `${startY}px`);
-  overlay.style.setProperty("--raven-mid-x", `${endX - ((endX - startX) * 0.45)}px`);
-  overlay.style.setProperty("--raven-mid-y", `${endY + ((startY - endY) * 0.48) - 18}px`);
-  overlay.style.setProperty("--raven-end-x", `${endX}px`);
-  overlay.style.setProperty("--raven-end-y", `${endY}px`);
+  overlay.style.setProperty("--origin-x", `${path.startX}px`);
+  overlay.style.setProperty("--origin-y", `${path.startY}px`);
+  overlay.style.setProperty("--feather-rise-x", `${path.featherX}px`);
+  overlay.style.setProperty("--feather-rise-y", `${path.featherY}px`);
+  overlay.style.setProperty("--raven-form-x", `${path.formX}px`);
+  overlay.style.setProperty("--raven-form-y", `${path.formY}px`);
+  overlay.style.setProperty("--raven-center-x", `${path.centerX}px`);
+  overlay.style.setProperty("--raven-center-y", `${path.centerY}px`);
+  overlay.style.setProperty("--raven-exit-x", `${path.exitX}px`);
+  overlay.style.setProperty("--raven-exit-y", `${path.exitY}px`);
   overlay.innerHTML = `
-    <div class="raven-flight" aria-hidden="true">
+    <div class="raven-veil" aria-hidden="true"></div>
+    <div class="button-origin-glow" aria-hidden="true"></div>
+    <div class="waypoint-field" aria-hidden="true">
+      <svg viewBox="0 0 760 520" focusable="false">
+        <path class="waypoint-line line-one" d="M92 372 C190 214 345 168 505 240 S656 260 704 118"></path>
+        <path class="waypoint-line line-two" d="M118 162 C266 214 374 118 558 174"></path>
+        <path class="waypoint-line line-three" d="M184 430 C298 338 408 336 604 410"></path>
+        <circle class="waypoint-node node-one" cx="92" cy="372" r="7"></circle>
+        <circle class="waypoint-node node-two" cx="238" cy="224" r="5"></circle>
+        <circle class="waypoint-node node-three" cx="390" cy="174" r="6"></circle>
+        <circle class="waypoint-node node-four" cx="550" cy="250" r="7"></circle>
+        <circle class="waypoint-node node-five" cx="704" cy="118" r="5"></circle>
+        <circle class="waypoint-node node-six" cx="604" cy="410" r="6"></circle>
+      </svg>
+    </div>
+    <div class="dashboard-vision" aria-hidden="true">
+      <span></span>
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+    <div class="feather-spirit" aria-hidden="true">
+      <div class="feather-glow"></div>
+      <svg viewBox="0 0 96 142" focusable="false">
+        <path class="feather-core" d="M75 6 C42 18 21 47 15 86 C12 108 19 128 29 137 C28 109 37 75 60 30 C49 58 37 93 36 136 C54 119 72 84 79 48 C82 30 81 15 75 6 Z"></path>
+        <path class="feather-edge" d="M75 6 C42 18 21 47 15 86 C12 108 19 128 29 137 C29 103 40 62 75 6 Z"></path>
+        <path class="feather-vein" d="M31 136 C34 96 47 52 75 6"></path>
+        <path class="feather-barb" d="M38 101 C25 105 18 112 13 122"></path>
+        <path class="feather-barb" d="M45 77 C31 79 23 85 16 95"></path>
+        <path class="feather-barb" d="M54 53 C39 54 30 60 22 70"></path>
+      </svg>
+    </div>
+    <div class="spirit-raven" aria-hidden="true">
+      <div class="raven-energy"></div>
       <div class="raven-trail"></div>
       <div class="raven-particles">
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
-        <span></span>
+        <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
       </div>
-      <svg class="raven-svg" viewBox="0 0 124 78" focusable="false">
-        <path class="raven-wing raven-wing-back" d="M54 38 C34 28 20 13 5 9 C16 31 32 45 54 47 C68 48 79 44 91 36 C76 40 65 41 54 38 Z"></path>
-        <path class="raven-body" d="M38 47 C50 31 72 22 97 23 C105 23 113 20 121 14 C117 24 110 31 100 35 C90 43 75 51 55 56 C43 59 30 61 16 59 C22 54 30 51 38 47 Z"></path>
-        <path class="raven-wing raven-wing-front" d="M57 42 C43 35 35 23 30 9 C48 16 65 28 80 45 C68 44 61 43 57 42 Z"></path>
-        <path class="raven-head" d="M92 24 C101 14 112 11 124 9 C116 17 107 24 98 30 Z"></path>
+      <svg class="raven-svg" viewBox="0 0 188 128" focusable="false">
+        <defs>
+          <linearGradient id="ravenEdgeGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#b8eee4" stop-opacity="0.82"></stop>
+            <stop offset="62%" stop-color="#00f0d1" stop-opacity="0.24"></stop>
+            <stop offset="100%" stop-color="#8fa6d9" stop-opacity="0.05"></stop>
+          </linearGradient>
+        </defs>
+        <path class="raven-wing raven-wing-back" d="M78 67 C52 53 31 28 8 18 C20 44 43 70 74 83 C94 91 113 89 132 78 C110 78 94 74 78 67 Z"></path>
+        <path class="raven-body" d="M58 82 C72 51 101 38 135 42 C148 43 160 37 174 25 C170 42 158 54 143 61 C126 80 98 95 59 101 C39 104 24 101 10 93 C27 92 44 88 58 82 Z"></path>
+        <path class="raven-wing raven-wing-front" d="M88 72 C76 50 69 30 70 7 C95 20 121 43 142 72 C121 75 103 75 88 72 Z"></path>
+        <path class="raven-head" d="M132 43 C146 27 164 20 188 17 C174 31 157 44 139 52 Z"></path>
+        <path class="raven-tail" d="M57 84 C38 75 22 66 0 65 C14 80 29 91 52 99 Z"></path>
+        <path class="raven-edge" d="M18 19 C50 55 85 78 132 77 M70 8 C94 23 118 44 142 72 M134 44 C151 31 166 23 188 17"></path>
       </svg>
+    </div>
+    <div class="arrival-dust" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span><span></span>
     </div>
   `;
 
+  startElement?.classList.add("login-success-origin");
   els.authShell.classList.add("auth-shell-transitioning");
   document.body.append(overlay);
 
   window.setTimeout(() => {
     overlay.remove();
+    startElement?.classList.remove("login-success-origin");
     els.authShell.classList.remove("auth-shell-transitioning");
     onComplete?.();
-  }, duration);
+  }, transitionDuration);
 
   return overlay;
 }
@@ -585,11 +646,19 @@ function getLoginTransitionPath(startElement) {
   const rect = startElement?.getBoundingClientRect();
   const startX = rect ? rect.left + (rect.width * 0.42) : fallbackX;
   const startY = rect ? rect.top + (rect.height * 0.45) : fallbackY;
+  const centerX = Math.round(window.innerWidth * 0.54);
+  const centerY = Math.round(window.innerHeight * 0.42);
   return {
     startX,
     startY,
-    endX: Math.min(window.innerWidth - 76, startX + Math.max(260, window.innerWidth * 0.28)),
-    endY: Math.max(58, startY - Math.max(220, window.innerHeight * 0.34)),
+    featherX: startX + Math.max(52, window.innerWidth * 0.045),
+    featherY: Math.max(78, startY - Math.max(150, window.innerHeight * 0.24)),
+    formX: centerX - Math.max(132, window.innerWidth * 0.12),
+    formY: Math.max(76, centerY - Math.max(72, window.innerHeight * 0.12)),
+    centerX,
+    centerY,
+    exitX: Math.min(window.innerWidth - 98, centerX + Math.max(210, window.innerWidth * 0.24)),
+    exitY: Math.max(48, centerY - Math.max(180, window.innerHeight * 0.28)),
   };
 }
 
