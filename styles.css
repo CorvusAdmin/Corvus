@@ -244,6 +244,11 @@ fieldset {
   margin-bottom: 4px;
 }
 
+.auth-panel {
+  display: grid;
+  gap: 18px;
+}
+
 .auth-message {
   width: min(440px, 100%);
   position: fixed;
