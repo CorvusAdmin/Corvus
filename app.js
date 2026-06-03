@@ -85,15 +85,26 @@ const els = {
   appShell: document.querySelector("#appShell"),
   loginView: document.querySelector("#loginView"),
   signupView: document.querySelector("#signupView"),
+  resetRequestView: document.querySelector("#resetRequestView"),
+  resetPasswordView: document.querySelector("#resetPasswordView"),
   loginForm: document.querySelector("#loginForm"),
   signupForm: document.querySelector("#signupForm"),
+  resetRequestForm: document.querySelector("#resetRequestForm"),
+  resetPasswordForm: document.querySelector("#resetPasswordForm"),
   loginEmail: document.querySelector("#loginEmail"),
   loginPassword: document.querySelector("#loginPassword"),
   signupEmail: document.querySelector("#signupEmail"),
   signupPassword: document.querySelector("#signupPassword"),
   signupPasswordError: document.querySelector("#signupPasswordError"),
+  resetRequestEmail: document.querySelector("#resetRequestEmail"),
+  resetNewPassword: document.querySelector("#resetNewPassword"),
+  resetConfirmPassword: document.querySelector("#resetConfirmPassword"),
+  resetPasswordError: document.querySelector("#resetPasswordError"),
   showSignup: document.querySelector("#showSignup"),
   showLogin: document.querySelector("#showLogin"),
+  showForgotPassword: document.querySelector("#showForgotPassword"),
+  resetRequestBack: document.querySelector("#resetRequestBack"),
+  resetPasswordBack: document.querySelector("#resetPasswordBack"),
   authMessage: document.querySelector("#authMessage"),
   userEmail: document.querySelector("#userEmail"),
   userDebugLine: document.querySelector("#userDebugLine"),
@@ -378,7 +389,14 @@ function bindEvents() {
 function bindAuthEvents() {
   els.showSignup.addEventListener("click", () => navigateAuth("signup"));
   els.showLogin.addEventListener("click", () => navigateAuth("login"));
+  els.showForgotPassword.addEventListener("click", () => {
+    els.resetRequestEmail.value = els.loginEmail.value.trim();
+    navigateAuth("forgot-password");
+  });
+  els.resetRequestBack.addEventListener("click", () => navigateAuth("login"));
+  els.resetPasswordBack.addEventListener("click", () => navigateAuth("login"));
   window.addEventListener("hashchange", renderAuthRoute);
+  window.addEventListener("popstate", renderAuthRoute);
   document.querySelectorAll("[data-password-toggle]").forEach((button) => {
     button.addEventListener("click", () => togglePasswordVisibility(button));
   });
@@ -386,6 +404,9 @@ function bindAuthEvents() {
     if (isSignupPasswordValid(els.signupPassword.value)) {
       setSignupPasswordError(false);
     }
+  });
+  [els.resetNewPassword, els.resetConfirmPassword].forEach((input) => {
+    input.addEventListener("input", () => setResetPasswordError(""));
   });
 
   els.loginForm.addEventListener("submit", async (event) => {
@@ -450,6 +471,51 @@ function bindAuthEvents() {
     navigateAuth("login");
   });
 
+  els.resetRequestForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!requireSupabaseConfig()) return;
+    const resetButton = els.resetRequestForm.querySelector("button[type='submit']");
+    resetButton.disabled = true;
+    setAuthMessage("Sending reset link...");
+    const { error } = await supabase.auth.resetPasswordForEmail(els.resetRequestEmail.value.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    resetButton.disabled = false;
+    if (error) {
+      setAuthMessage(error.message);
+      return;
+    }
+    setAuthMessage("If an account exists for that email, a reset link has been sent.");
+  });
+
+  els.resetPasswordForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!requireSupabaseConfig()) return;
+    const newPassword = els.resetNewPassword.value;
+    const confirmPassword = els.resetConfirmPassword.value;
+    if (!isPasswordPolicyValid(newPassword)) {
+      setResetPasswordError("Please use at least 6 characters with both letters and numbers.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setResetPasswordError("Passwords do not match.");
+      return;
+    }
+
+    const resetButton = els.resetPasswordForm.querySelector("button[type='submit']");
+    resetButton.disabled = true;
+    setResetPasswordError("");
+    setAuthMessage("Updating password...");
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    resetButton.disabled = false;
+    if (error) {
+      setAuthMessage(error.message);
+      return;
+    }
+    els.resetPasswordForm.reset();
+    setAuthMessage("Password updated. You can now log in.");
+  });
+
   els.logoutButton.addEventListener("click", async () => {
     if (!supabase) return;
     await flushRemoteSave();
@@ -464,6 +530,10 @@ async function initializeAuth() {
   }
 
   supabase.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY" || isResetPasswordRoute()) {
+      showLoggedOutView("reset-password");
+      return;
+    }
     if (event === "SIGNED_OUT") {
       showLoggedOutView("login");
       return;
@@ -480,10 +550,12 @@ async function initializeAuth() {
     return;
   }
 
-  if (data.session?.user) {
+  if (isResetPasswordRoute()) {
+    showLoggedOutView("reset-password");
+  } else if (data.session?.user) {
     await enterProtectedApp(data.session.user);
   } else {
-    showLoggedOutView(getAuthModeFromHash());
+    showLoggedOutView(getAuthModeFromLocation());
   }
 }
 
@@ -494,20 +566,37 @@ function requireSupabaseConfig() {
 }
 
 function navigateAuth(mode) {
-  window.location.hash = mode === "signup" ? "signup" : "login";
+  const hash = mode === "signup"
+    ? "signup"
+    : mode === "forgot-password"
+      ? "forgot-password"
+      : "login";
+  if (isResetPasswordRoute()) {
+    history.replaceState(null, "", `/#${hash}`);
+  } else {
+    window.location.hash = hash;
+  }
   renderAuthRoute();
 }
 
 function renderAuthRoute() {
-  if (currentUser) {
+  if (currentUser && !isResetPasswordRoute()) {
     showProtectedView();
     return;
   }
-  showLoggedOutView(getAuthModeFromHash());
+  showLoggedOutView(getAuthModeFromLocation());
 }
 
-function getAuthModeFromHash() {
-  return window.location.hash.replace("#", "") === "signup" ? "signup" : "login";
+function getAuthModeFromLocation() {
+  if (isResetPasswordRoute()) return "reset-password";
+  const hash = window.location.hash.replace("#", "");
+  if (hash === "signup") return "signup";
+  if (hash === "forgot-password") return "forgot-password";
+  return "login";
+}
+
+function isResetPasswordRoute() {
+  return window.location.pathname === "/reset-password";
 }
 
 function showLoggedOutView(mode) {
@@ -519,10 +608,16 @@ function showLoggedOutView(mode) {
   setActiveUserDisplay(null);
   els.appShell.hidden = true;
   els.authShell.hidden = false;
-  els.loginView.hidden = mode === "signup";
+  els.loginView.hidden = mode !== "login";
   els.signupView.hidden = mode !== "signup";
-  if (!["#login", "#signup"].includes(window.location.hash)) {
-    window.location.hash = mode === "signup" ? "signup" : "login";
+  els.resetRequestView.hidden = mode !== "forgot-password";
+  els.resetPasswordView.hidden = mode !== "reset-password";
+  if (mode !== "reset-password" && !["#login", "#signup", "#forgot-password"].includes(window.location.hash)) {
+    window.location.hash = mode === "signup"
+      ? "signup"
+      : mode === "forgot-password"
+        ? "forgot-password"
+        : "login";
   }
 }
 
@@ -728,6 +823,10 @@ function togglePasswordVisibility(button) {
 }
 
 function isSignupPasswordValid(password) {
+  return isPasswordPolicyValid(password);
+}
+
+function isPasswordPolicyValid(password) {
   return password.length >= 6
     && /[a-z]/i.test(password)
     && /\d/.test(password);
@@ -737,6 +836,15 @@ function setSignupPasswordError(shouldShow) {
   els.signupPasswordError.hidden = !shouldShow;
   els.signupPassword.setAttribute("aria-invalid", String(shouldShow));
   if (shouldShow) setAuthMessage("");
+}
+
+function setResetPasswordError(message) {
+  const hasError = Boolean(message);
+  els.resetPasswordError.hidden = !hasError;
+  els.resetPasswordError.textContent = message;
+  els.resetNewPassword.setAttribute("aria-invalid", String(hasError));
+  els.resetConfirmPassword.setAttribute("aria-invalid", String(hasError));
+  if (hasError) setAuthMessage("");
 }
 
 function resetPlannerState() {

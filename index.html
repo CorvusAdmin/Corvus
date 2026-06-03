@@ -30,6 +30,7 @@
             <button class="password-toggle" type="button" data-password-toggle="loginPassword" aria-controls="loginPassword" aria-pressed="false" aria-label="Show password">Show</button>
           </span>
         </label>
+        <button class="text-button auth-inline-link" id="showForgotPassword" type="button">Forgot password?</button>
         <button class="primary-button" type="submit">Log in</button>
       </form>
       <button class="text-button" id="showSignup" type="button">Create an account</button>
@@ -62,6 +63,58 @@
         <button class="primary-button" type="submit">Sign up</button>
       </form>
       <button class="text-button" id="showLogin" type="button">Back to login</button>
+    </div>
+
+    <div class="auth-card" id="resetRequestView" hidden>
+      <div class="brand-lockup auth-brand">
+        <div class="brand-mark-frame" aria-hidden="true">
+          <img class="brand-mark" src="assets/corvus-mark.png" alt="">
+        </div>
+        <div>
+          <h1>Corvus</h1>
+          <p class="tagline">Because Managing the Work Is Work</p>
+        </div>
+      </div>
+      <form id="resetRequestForm" class="stack">
+        <label>
+          Email
+          <input id="resetRequestEmail" type="email" autocomplete="email" required>
+        </label>
+        <button class="primary-button" type="submit">Send reset link</button>
+      </form>
+      <button class="text-button" id="resetRequestBack" type="button">Back to login</button>
+    </div>
+
+    <div class="auth-card" id="resetPasswordView" hidden>
+      <div class="brand-lockup auth-brand">
+        <div class="brand-mark-frame" aria-hidden="true">
+          <img class="brand-mark" src="assets/corvus-mark.png" alt="">
+        </div>
+        <div>
+          <h1>Corvus</h1>
+          <p class="tagline">Because Managing the Work Is Work</p>
+        </div>
+      </div>
+      <form id="resetPasswordForm" class="stack">
+        <label>
+          New password
+          <span class="password-control">
+            <input id="resetNewPassword" type="password" autocomplete="new-password" minlength="6" aria-describedby="resetPasswordHelp resetPasswordError" required>
+            <button class="password-toggle" type="button" data-password-toggle="resetNewPassword" aria-controls="resetNewPassword" aria-pressed="false" aria-label="Show password">Show</button>
+          </span>
+          <span class="field-help" id="resetPasswordHelp">Password must be at least 6 characters and include both letters and numbers.</span>
+        </label>
+        <label>
+          Confirm new password
+          <span class="password-control">
+            <input id="resetConfirmPassword" type="password" autocomplete="new-password" minlength="6" aria-describedby="resetPasswordError" required>
+            <button class="password-toggle" type="button" data-password-toggle="resetConfirmPassword" aria-controls="resetConfirmPassword" aria-pressed="false" aria-label="Show password">Show</button>
+          </span>
+          <span class="field-error" id="resetPasswordError" hidden></span>
+        </label>
+        <button class="primary-button" type="submit">Update password</button>
+      </form>
+      <button class="text-button" id="resetPasswordBack" type="button">Back to login</button>
     </div>
 
     <div class="auth-message" id="authMessage" hidden></div>
