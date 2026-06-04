@@ -115,38 +115,55 @@ textarea::placeholder {
   right: 7px;
   width: 36px;
   min-height: 34px;
+  display: inline-grid;
+  place-items: center;
   transform: translateY(-50%);
   border: 1px solid rgba(127, 212, 198, 0.18);
   border-radius: 6px;
   background: rgba(127, 212, 198, 0.08);
   color: #aab8b1;
   padding: 0;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
 
 .password-toggle:hover {
   transform: translateY(-50%);
   background: rgba(127, 212, 198, 0.14);
+  border-color: rgba(127, 212, 198, 0.30);
   color: var(--teal-dark);
+  box-shadow: 0 0 14px rgba(127, 212, 198, 0.10);
 }
 
 .password-toggle svg {
+  grid-area: 1 / 1;
   width: 18px;
   height: 18px;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 1.9;
+  stroke-width: 2;
   pointer-events: none;
+  transition: opacity 140ms ease, transform 140ms ease;
 }
 
-.password-toggle .eye-off-icon,
+.password-toggle .eye-off-icon {
+  opacity: 0;
+  transform: scale(0.82) rotate(-4deg);
+}
+
+.password-toggle[aria-pressed="true"] {
+  color: var(--teal-dark);
+}
+
 .password-toggle[aria-pressed="true"] .eye-icon {
-  display: none;
+  opacity: 0;
+  transform: scale(0.82) rotate(4deg);
 }
 
 .password-toggle[aria-pressed="true"] .eye-off-icon {
-  display: block;
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
 }
 
 .field-help,
