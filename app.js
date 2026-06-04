@@ -1492,12 +1492,16 @@ function renderSchedule() {
   const scheduled = latestPlan.segments.filter((segment) => (
     segment.type === "task" && segmentIntersectsRange(segment, range)
   ));
-  const scheduledDays = new Set(scheduled.map((segment) => formatDayKey(segment.start)));
   const blocked = latestPlan.segments.filter((segment) => (
     segment.type === "blocked"
     && segmentIntersectsRange(segment, range)
   ));
   const allSegments = [...scheduled, ...blocked].sort((a, b) => a.start - b.start);
+
+  if (range.view === "month") {
+    renderMonthSchedule(range, allSegments, scheduled);
+    return;
+  }
 
   if (!allSegments.length) {
     appendEmpty(els.scheduleList, `No schedule items ${getScheduleViewPhrase()}`, "Switch views or add tasks to generate a workday plan.");
@@ -1558,6 +1562,83 @@ function renderSchedule() {
     });
     els.scheduleList.append(day);
   });
+}
+
+function renderMonthSchedule(range, allSegments, scheduled) {
+  const totalMinutes = scheduled.reduce((sum, segment) => sum + segment.minutes, 0);
+  const workText = scheduled.length
+    ? `${scheduled.length} work block${scheduled.length === 1 ? "" : "s"} across ${formatDuration(totalMinutes)}`
+    : "No task work this month";
+  els.scheduleSubhead.textContent = `${formatScheduleRangeLabel(range)} - ${workText}`;
+
+  const calendar = document.createElement("section");
+  calendar.className = "month-calendar";
+  calendar.setAttribute("aria-label", `${formatScheduleRangeLabel(range)} calendar`);
+
+  const weekdays = document.createElement("div");
+  weekdays.className = "month-weekdays";
+  weekdays.innerHTML = dayNames.map((day) => `<span>${escapeHtml(day.short)}</span>`).join("");
+  calendar.append(weekdays);
+
+  const grid = document.createElement("div");
+  grid.className = "month-grid";
+  const segmentsByDay = new Map(groupByDay(allSegments).map((group) => [group.key, group]));
+  const firstVisibleDay = startOfCalendarWeek(range.start);
+  const lastVisibleDay = addDays(startOfCalendarWeek(addDays(range.end, -1)), 6);
+  const today = startOfDay(new Date());
+
+  for (let date = new Date(firstVisibleDay); date <= lastVisibleDay; date = addDays(date, 1)) {
+    const key = formatDayKey(date);
+    const group = segmentsByDay.get(key);
+    const items = group?.items || [];
+    const visibleItems = items.slice(0, 3);
+    const hiddenCount = Math.max(0, items.length - visibleItems.length);
+    const workMinutes = items
+      .filter((segment) => segment.type === "task")
+      .reduce((sum, segment) => sum + segment.minutes, 0);
+    const cell = document.createElement("article");
+    cell.className = [
+      "month-day",
+      date.getMonth() === range.start.getMonth() ? "" : "outside-month",
+      isSameDay(date, today) ? "today" : "",
+      items.length ? "has-items" : "",
+    ].filter(Boolean).join(" ");
+    cell.dataset.day = key;
+    cell.innerHTML = `
+      <div class="month-day-top">
+        <span class="month-date-number">${date.getDate()}</span>
+        ${workMinutes ? `<span class="month-day-load">${formatDuration(workMinutes)}</span>` : ""}
+      </div>
+      <div class="month-day-items">
+        ${visibleItems.map(renderMonthScheduleItem).join("")}
+        ${hiddenCount ? `<div class="month-more">+${hiddenCount} more</div>` : ""}
+      </div>
+    `;
+    grid.append(cell);
+  }
+
+  calendar.append(grid);
+  els.scheduleList.append(calendar);
+}
+
+function renderMonthScheduleItem(segment) {
+  const title = segment.type === "blocked"
+    ? segment.title
+    : `${segment.title}${segment.partCount > 1 ? `, part ${segment.partNumber}` : ""}`;
+  const category = segment.type === "task" ? getCategory(segment.categoryId) : null;
+  const color = segment.type === "task" ? category.color : "#98a69f";
+  const classes = [
+    "month-calendar-item",
+    segment.type === "blocked" ? "blocked" : "",
+    segment.endsAfterDue ? "risk" : "",
+  ].filter(Boolean).join(" ");
+  return `
+    <div class="${classes}" style="--item-color:${escapeAttribute(color)}" title="${escapeAttribute(`${formatTime(segment.start)} to ${formatTime(segment.end)} - ${title}`)}">
+      <span class="month-item-dot" aria-hidden="true"></span>
+      <span class="month-item-time">${formatTime(segment.start)}</span>
+      <span class="month-item-title">${escapeHtml(title)}</span>
+    </div>
+  `;
 }
 
 function renderScheduleViewButtons() {
@@ -2190,6 +2271,12 @@ function startOfWeek(date) {
   const day = next.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   next.setDate(next.getDate() + diff);
+  return next;
+}
+
+function startOfCalendarWeek(date) {
+  const next = startOfDay(date);
+  next.setDate(next.getDate() - next.getDay());
   return next;
 }
 
