@@ -109,6 +109,10 @@ const els = {
   userEmail: document.querySelector("#userEmail"),
   userDebugLine: document.querySelector("#userDebugLine"),
   logoutButton: document.querySelector("#logoutButton"),
+  openPreferences: document.querySelector("#openPreferences"),
+  closePreferences: document.querySelector("#closePreferences"),
+  preferencesDialog: document.querySelector("#preferencesDialog"),
+  workPreferencesSummary: document.querySelector("#workPreferencesSummary"),
   workDays: document.querySelector("#workDays"),
   workStart: document.querySelector("#workStart"),
   workEnd: document.querySelector("#workEnd"),
@@ -374,6 +378,14 @@ function bindEvents() {
   els.exportCsv.addEventListener("click", exportScheduleCsv);
   els.printSchedule.addEventListener("click", () => window.print());
   els.todayButton.addEventListener("click", scrollToToday);
+  els.openPreferences.addEventListener("click", openPreferencesDrawer);
+  els.closePreferences.addEventListener("click", closePreferencesDrawer);
+  els.preferencesDialog.addEventListener("click", (event) => {
+    if (event.target === els.preferencesDialog) closePreferencesDrawer();
+  });
+  els.preferencesDialog.addEventListener("cancel", () => {
+    document.body.classList.remove("preferences-open");
+  });
   els.clearData.addEventListener("click", () => {
     const shouldClear = confirm("Clear all saved tasks, categories, and unavailable time?");
     if (!shouldClear) return;
@@ -1299,11 +1311,39 @@ function persistAndRender() {
 function render() {
   latestPlan = buildSchedule();
   renderSaveNotice();
+  renderWorkPreferencesSummary();
   renderCategoryControls();
   renderUnavailable();
   renderSchedule();
   renderQueue();
   renderMetrics();
+}
+
+function openPreferencesDrawer() {
+  if (typeof els.preferencesDialog.showModal === "function") {
+    if (!els.preferencesDialog.open) els.preferencesDialog.showModal();
+  } else {
+    els.preferencesDialog.setAttribute("open", "");
+  }
+  document.body.classList.add("preferences-open");
+  els.closePreferences.focus();
+}
+
+function closePreferencesDrawer() {
+  if (typeof els.preferencesDialog.close === "function" && els.preferencesDialog.open) {
+    els.preferencesDialog.close();
+  } else {
+    els.preferencesDialog.removeAttribute("open");
+  }
+  document.body.classList.remove("preferences-open");
+  els.openPreferences.focus();
+}
+
+function renderWorkPreferencesSummary() {
+  const workDays = formatWorkDaysSummary(state.settings.workDays);
+  const workHours = `${formatTimeValue(state.settings.workStart)}-${formatTimeValue(state.settings.workEnd)}`;
+  const unavailableCount = state.unavailable.length;
+  els.workPreferencesSummary.textContent = `${workDays} - ${workHours} - ${unavailableCount} unavailable block${unavailableCount === 1 ? "" : "s"}`;
 }
 
 function renderSaveNotice() {
@@ -2404,6 +2444,31 @@ function formatWeekday(value) {
 
 function formatTime(date) {
   return new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit" }).format(date);
+}
+
+function formatTimeValue(time) {
+  return formatTime(withMinutesOfDay(new Date(), timeToMinutes(time)));
+}
+
+function formatWorkDaysSummary(workDays) {
+  const selected = [...new Set(workDays)].sort((a, b) => a - b);
+  if (!selected.length) return "No work days";
+  if (selected.length === 7) return "Every day";
+  if (selected.join(",") === "1,2,3,4,5") return "Mon-Fri";
+  if (selected.join(",") === "0,6") return "Weekends";
+
+  const first = selected[0];
+  const last = selected[selected.length - 1];
+  const isContiguous = selected.every((day, index) => day === first + index);
+  if (isContiguous && selected.length > 2) {
+    const firstLabel = dayNames.find((day) => day.index === first)?.short || String(first);
+    const lastLabel = dayNames.find((day) => day.index === last)?.short || String(last);
+    return `${firstLabel}-${lastLabel}`;
+  }
+
+  return selected
+    .map((index) => dayNames.find((day) => day.index === index)?.short || String(index))
+    .join(", ");
 }
 
 function formatDateTime(date) {

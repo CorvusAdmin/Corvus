@@ -193,6 +193,7 @@ fieldset {
 .app-shell.dashboard-arriving .user-debug-line,
 .app-shell.dashboard-arriving .save-notice,
 .app-shell.dashboard-arriving .metrics-grid,
+.app-shell.dashboard-arriving .preferences-entry,
 .app-shell.dashboard-arriving .workspace {
   animation: dashboardArrive 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -201,8 +202,12 @@ fieldset {
   animation-delay: 80ms;
 }
 
+.app-shell.dashboard-arriving .preferences-entry {
+  animation-delay: 120ms;
+}
+
 .app-shell.dashboard-arriving .workspace {
-  animation-delay: 160ms;
+  animation-delay: 180ms;
 }
 
 .auth-shell::before,
@@ -224,6 +229,7 @@ fieldset {
 .user-debug-line,
 .save-notice,
 .metrics-grid,
+.preferences-entry,
 .workspace {
   position: relative;
   z-index: 1;
@@ -1035,6 +1041,132 @@ h2 {
   margin-bottom: 12px;
 }
 
+.preferences-entry {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgba(127, 212, 198, 0.16);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(127, 212, 198, 0.08), rgba(236, 241, 235, 0.03)),
+    rgba(23, 29, 27, 0.78);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.14);
+  margin-bottom: 12px;
+  padding: 10px 12px;
+}
+
+.preferences-entry-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.preferences-entry-copy strong {
+  color: #f4f7f1;
+  font-size: 0.96rem;
+  line-height: 1.25;
+}
+
+.preferences-entry-copy span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preferences-kicker {
+  color: var(--teal-dark);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+body.preferences-open {
+  overflow: hidden;
+}
+
+.preferences-dialog {
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 0;
+}
+
+.preferences-dialog::backdrop {
+  background:
+    radial-gradient(circle at 80% 18%, rgba(127, 212, 198, 0.12), transparent 30%),
+    rgba(3, 6, 7, 0.64);
+  backdrop-filter: blur(5px);
+}
+
+.preferences-dialog[open] {
+  display: grid;
+  justify-items: end;
+}
+
+.preferences-drawer {
+  width: min(520px, 100vw);
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  border-left: 1px solid rgba(127, 212, 198, 0.18);
+  background:
+    linear-gradient(180deg, rgba(32, 40, 36, 0.96), rgba(13, 17, 16, 0.98)),
+    var(--surface);
+  box-shadow: -24px 0 70px rgba(0, 0, 0, 0.42);
+  overflow: hidden;
+}
+
+.preferences-drawer-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid var(--line);
+  padding: 18px;
+}
+
+.preferences-drawer-header p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.preferences-drawer-body {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  overflow-y: auto;
+  padding: 16px 18px 24px;
+}
+
+.preferences-section {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(19, 24, 23, 0.78);
+  padding: 14px;
+}
+
+.preferences-section .panel-heading {
+  margin-bottom: 0;
+}
+
 .save-notice {
   border: 1px solid rgba(215, 180, 106, 0.30);
   border-radius: var(--radius);
@@ -1096,7 +1228,7 @@ h2 {
 
 .workspace {
   display: grid;
-  grid-template-columns: 300px minmax(280px, 360px) minmax(420px, 1fr) minmax(280px, 370px);
+  grid-template-columns: minmax(280px, 360px) minmax(520px, 1fr) minmax(300px, 390px);
   align-items: start;
   gap: 14px;
 }
@@ -2318,11 +2450,7 @@ h2 {
 
 @media (max-width: 1380px) {
   .workspace {
-    grid-template-columns: minmax(280px, 360px) minmax(420px, 1fr) minmax(280px, 360px);
-  }
-
-  .setup-panel {
-    grid-column: 1 / 2;
+    grid-template-columns: minmax(270px, 340px) minmax(440px, 1fr) minmax(280px, 360px);
   }
 
   .task-panel {
@@ -2349,7 +2477,6 @@ h2 {
     grid-template-columns: 1fr 1fr;
   }
 
-  .setup-panel,
   .task-panel,
   .schedule-panel,
   .queue-panel {
@@ -2418,6 +2545,28 @@ h2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .preferences-entry {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .preferences-entry .secondary-button {
+    width: 100%;
+  }
+
+  .preferences-drawer {
+    width: 100vw;
+  }
+
+  .preferences-drawer-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .preferences-drawer-header .ghost-button {
+    width: 100%;
+  }
+
   .schedule-panel,
   .queue-panel {
     grid-column: auto;
@@ -2479,10 +2628,10 @@ h2 {
   }
 
   .top-actions,
-  .setup-panel,
   .task-panel,
   .queue-panel,
   .metrics-grid,
+  .preferences-entry,
   #todayButton,
   .app-shell::before {
     display: none !important;

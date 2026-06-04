@@ -142,108 +142,16 @@
       </article>
     </section>
 
+    <section class="preferences-entry" aria-label="Work preferences">
+      <div class="preferences-entry-copy">
+        <span class="preferences-kicker">Work Preferences</span>
+        <strong>Work hours, unavailable time, and scheduling rules</strong>
+        <span id="workPreferencesSummary">Mon-Fri - 8:30 AM-5:00 PM - 0 unavailable blocks</span>
+      </div>
+      <button class="secondary-button" id="openPreferences" type="button" aria-haspopup="dialog" aria-controls="preferencesDialog">Edit preferences</button>
+    </section>
+
     <main class="workspace">
-      <section class="panel setup-panel">
-        <div class="panel-heading">
-          <h2>Work Setup</h2>
-        </div>
-
-        <form id="settingsForm" class="stack">
-          <fieldset>
-            <legend>Work days</legend>
-            <div class="day-toggle-grid" id="workDays"></div>
-          </fieldset>
-
-          <div class="two-column">
-            <label>
-              Start
-              <input id="workStart" type="time" required>
-            </label>
-            <label>
-              End
-              <input id="workEnd" type="time" required>
-            </label>
-          </div>
-
-          <label>
-            Max focus block
-            <select id="chunkMinutes">
-              <option value="45">45 minutes</option>
-              <option value="60">1 hour</option>
-              <option value="90">1.5 hours</option>
-              <option value="120">2 hours</option>
-              <option value="180">3 hours</option>
-            </select>
-          </label>
-        </form>
-
-        <div class="divider"></div>
-
-        <form id="unavailableForm" class="stack">
-          <div class="panel-heading compact">
-            <h2>Unavailable</h2>
-          </div>
-          <label>
-            Name
-            <input id="blockTitle" type="text" placeholder="Board meeting">
-          </label>
-          <label>
-            From
-            <input id="blockStart" type="datetime-local">
-          </label>
-          <label>
-            Until
-            <input id="blockEnd" type="datetime-local">
-          </label>
-          <div class="two-column">
-            <label>
-              Repeats
-              <select id="blockRecurrence">
-                <option value="none">No repeat</option>
-                <option value="daily">Daily</option>
-                <option value="weekdays">Weekdays</option>
-                <option value="weekends">Weekends</option>
-                <option value="weekly">Weekly</option>
-                <option value="biweekly">Every 2 weeks</option>
-                <option value="monthly">Monthly</option>
-                <option value="monthlyNth">Monthly by weekday</option>
-                <option value="bimonthlyNth">Every other month by weekday</option>
-              </select>
-            </label>
-            <label>
-              Repeat until
-              <input id="blockRepeatUntil" type="date">
-            </label>
-          </div>
-          <div class="two-column recurrence-detail" id="blockNthControls" hidden>
-            <label>
-              Week
-              <select id="blockNthWeek">
-                <option value="1">1st</option>
-                <option value="2">2nd</option>
-                <option value="3">3rd</option>
-                <option value="4">4th</option>
-                <option value="-1">Last</option>
-              </select>
-            </label>
-            <label>
-              Day
-              <select id="blockNthDay">
-                <option value="0">Sunday</option>
-                <option value="1">Monday</option>
-                <option value="2">Tuesday</option>
-                <option value="3">Wednesday</option>
-                <option value="4">Thursday</option>
-                <option value="5">Friday</option>
-                <option value="6">Saturday</option>
-              </select>
-            </label>
-          </div>
-          <button class="primary-button" type="submit">Add unavailable time</button>
-        </form>
-        <div id="blockList" class="item-list" aria-live="polite"></div>
-      </section>
-
       <section class="panel task-panel">
         <div class="panel-heading">
           <h2>Add Work</h2>
@@ -352,6 +260,122 @@
         <div id="queueList" class="item-list queue-list" aria-live="polite"></div>
       </section>
     </main>
+
+    <dialog class="preferences-dialog" id="preferencesDialog" aria-labelledby="preferencesTitle" aria-modal="true">
+      <div class="preferences-drawer">
+        <header class="preferences-drawer-header">
+          <div>
+            <span class="preferences-kicker">Configuration</span>
+            <h2 id="preferencesTitle">Work Preferences</h2>
+            <p>Work hours, unavailable time, and scheduling rules</p>
+          </div>
+          <button class="ghost-button" id="closePreferences" type="button">Close</button>
+        </header>
+
+        <div class="preferences-drawer-body">
+          <section class="preferences-section" aria-labelledby="workSetupTitle">
+            <div class="panel-heading">
+              <h2 id="workSetupTitle">Work Setup</h2>
+            </div>
+
+            <form id="settingsForm" class="stack">
+              <fieldset>
+                <legend>Work days</legend>
+                <div class="day-toggle-grid" id="workDays"></div>
+              </fieldset>
+
+              <div class="two-column">
+                <label>
+                  Start
+                  <input id="workStart" type="time" required>
+                </label>
+                <label>
+                  End
+                  <input id="workEnd" type="time" required>
+                </label>
+              </div>
+
+              <label>
+                Max focus block
+                <select id="chunkMinutes">
+                  <option value="45">45 minutes</option>
+                  <option value="60">1 hour</option>
+                  <option value="90">1.5 hours</option>
+                  <option value="120">2 hours</option>
+                  <option value="180">3 hours</option>
+                </select>
+              </label>
+            </form>
+          </section>
+
+          <section class="preferences-section" aria-labelledby="unavailableTitle">
+            <form id="unavailableForm" class="stack">
+              <div class="panel-heading">
+                <h2 id="unavailableTitle">Unavailable Time</h2>
+              </div>
+              <label>
+                Name
+                <input id="blockTitle" type="text" placeholder="Board meeting">
+              </label>
+              <label>
+                From
+                <input id="blockStart" type="datetime-local">
+              </label>
+              <label>
+                Until
+                <input id="blockEnd" type="datetime-local">
+              </label>
+              <div class="two-column">
+                <label>
+                  Repeats
+                  <select id="blockRecurrence">
+                    <option value="none">No repeat</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekdays">Weekdays</option>
+                    <option value="weekends">Weekends</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="biweekly">Every 2 weeks</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="monthlyNth">Monthly by weekday</option>
+                    <option value="bimonthlyNth">Every other month by weekday</option>
+                  </select>
+                </label>
+                <label>
+                  Repeat until
+                  <input id="blockRepeatUntil" type="date">
+                </label>
+              </div>
+              <div class="two-column recurrence-detail" id="blockNthControls" hidden>
+                <label>
+                  Week
+                  <select id="blockNthWeek">
+                    <option value="1">1st</option>
+                    <option value="2">2nd</option>
+                    <option value="3">3rd</option>
+                    <option value="4">4th</option>
+                    <option value="-1">Last</option>
+                  </select>
+                </label>
+                <label>
+                  Day
+                  <select id="blockNthDay">
+                    <option value="0">Sunday</option>
+                    <option value="1">Monday</option>
+                    <option value="2">Tuesday</option>
+                    <option value="3">Wednesday</option>
+                    <option value="4">Thursday</option>
+                    <option value="5">Friday</option>
+                    <option value="6">Saturday</option>
+                  </select>
+                </label>
+              </div>
+              <button class="primary-button" type="submit">Add unavailable time</button>
+            </form>
+            <div id="blockList" class="item-list" aria-live="polite"></div>
+          </section>
+        </div>
+      </div>
+    </dialog>
   </div>
 
   <template id="emptyStateTemplate">
