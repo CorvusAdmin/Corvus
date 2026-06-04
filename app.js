@@ -829,7 +829,6 @@ function togglePasswordVisibility(button) {
 
   const shouldShow = input.type === "password";
   input.type = shouldShow ? "text" : "password";
-  button.textContent = shouldShow ? "Hide" : "Show";
   button.setAttribute("aria-pressed", String(shouldShow));
   button.setAttribute("aria-label", `${shouldShow ? "Hide" : "Show"} password`);
 }
