@@ -147,6 +147,7 @@ const els = {
   queueList: document.querySelector("#queueList"),
   openCount: document.querySelector("#openCount"),
   openHours: document.querySelector("#openHours"),
+  riskMetric: document.querySelector("#riskMetric"),
   riskCount: document.querySelector("#riskCount"),
   riskDetail: document.querySelector("#riskDetail"),
   nextDue: document.querySelector("#nextDue"),
@@ -378,6 +379,12 @@ function bindEvents() {
   els.exportCsv.addEventListener("click", exportScheduleCsv);
   els.printSchedule.addEventListener("click", () => window.print());
   els.todayButton.addEventListener("click", scrollToToday);
+  els.riskMetric.addEventListener("click", showRiskQueueFilter);
+  els.riskMetric.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    showRiskQueueFilter();
+  });
   els.openPreferences.addEventListener("click", openPreferencesDrawer);
   els.closePreferences.addEventListener("click", closePreferencesDrawer);
   els.preferencesDialog.addEventListener("click", (event) => {
@@ -1341,8 +1348,8 @@ function closePreferencesDrawer() {
 function renderWorkPreferencesSummary() {
   const workDays = formatWorkDaysSummary(state.settings.workDays);
   const workHours = `${formatTimeValue(state.settings.workStart)}-${formatTimeValue(state.settings.workEnd)}`;
-  const unavailableCount = state.unavailable.length;
-  els.workPreferencesSummary.textContent = `${workDays} - ${workHours} - ${unavailableCount} unavailable block${unavailableCount === 1 ? "" : "s"}`;
+  const unavailableText = state.unavailable.length ? " - Unavailable time configured" : "";
+  els.workPreferencesSummary.textContent = `${workDays} - ${workHours}${unavailableText}`;
 }
 
 function renderSaveNotice() {
@@ -1723,11 +1730,15 @@ function renderQueue() {
   els.queueList.innerHTML = "";
   const riskByTask = new Map(latestPlan.risks.map((risk) => [risk.taskId, risk]));
   const tasks = state.tasks
-    .filter(taskMatchesQueueFilter)
+    .filter((task) => taskMatchesQueueFilter(task, riskByTask))
     .sort(compareQueueTasks);
 
   if (!tasks.length) {
-    appendEmpty(els.queueList, "No tasks in this view", "Tasks will appear here after they are added.");
+    const emptyTitle = state.filter === "risk" ? "No deadline risks" : "No tasks in this view";
+    const emptyBody = state.filter === "risk"
+      ? "Work that may miss its deadline will appear here."
+      : "Tasks will appear here after they are added.";
+    appendEmpty(els.queueList, emptyTitle, emptyBody);
     return;
   }
 
@@ -1738,8 +1749,9 @@ function renderQueue() {
   });
 }
 
-function taskMatchesQueueFilter(task) {
+function taskMatchesQueueFilter(task, riskByTask = new Map()) {
   if (state.filter === "open") return !task.complete;
+  if (state.filter === "risk") return !task.complete && riskByTask.has(task.id);
   if (state.filter === "complete") return task.complete;
   return true;
 }
@@ -1828,9 +1840,13 @@ function renderTaskSeries(group, riskByTask) {
   const last = group.allTasks[group.allTasks.length - 1];
   const actionTask = state.filter === "complete"
     ? [...group.displayTasks].reverse().find((task) => task.complete) || group.completedTasks[group.completedTasks.length - 1]
+    : state.filter === "risk"
+      ? group.displayTasks.find((task) => !task.complete) || group.openTasks[0] || group.completedTasks[group.completedTasks.length - 1]
     : group.openTasks[0] || group.completedTasks[group.completedTasks.length - 1];
   const actionLabel = actionTask.complete ? "Reopen latest" : "Complete next";
-  const nextTask = group.openTasks.find((task) => new Date(task.due) >= new Date()) || group.openTasks[0] || group.displayTasks[0];
+  const nextTask = state.filter === "risk"
+    ? group.displayTasks.find((task) => riskByTask.has(task.id)) || group.displayTasks[0]
+    : group.openTasks.find((task) => new Date(task.due) >= new Date()) || group.openTasks[0] || group.displayTasks[0];
   const riskCount = group.displayTasks.filter((task) => riskByTask.has(task.id)).length;
   const detailLabel = state.filter === "open"
     ? "View open dates"
@@ -1884,14 +1900,18 @@ function renderMetrics() {
   const totalOpenMinutes = openTasks.reduce((sum, task) => sum + task.estimateMinutes, 0);
   const sortedOpen = [...openTasks].sort((a, b) => new Date(a.due) - new Date(b.due));
   const next = sortedOpen[0];
+  const atRiskCount = latestPlan.risks.length;
 
   els.openCount.textContent = String(openTasks.length);
   els.openHours.textContent = `${formatDuration(totalOpenMinutes)} queued`;
 
-  els.riskCount.textContent = String(latestPlan.risks.length + latestPlan.unscheduled.length);
-  els.riskDetail.textContent = latestPlan.risks.length || latestPlan.unscheduled.length
-    ? "Review the queue"
-    : "Nothing at risk";
+  els.riskCount.textContent = String(atRiskCount);
+  els.riskDetail.textContent = atRiskCount
+    ? `${atRiskCount} item${atRiskCount === 1 ? "" : "s"} may miss ${atRiskCount === 1 ? "its" : "their"} deadline`
+    : "No deadline conflicts found";
+  els.riskMetric.setAttribute("aria-label", atRiskCount
+    ? `Show ${atRiskCount} at-risk ${atRiskCount === 1 ? "item" : "items"} in the queue`
+    : "No deadline risks detected");
 
   if (next) {
     const due = new Date(next.due);
@@ -1905,6 +1925,11 @@ function renderMetrics() {
   const capacity = calculateCapacityThisWeek();
   els.weekCapacity.textContent = formatDuration(capacity.availableMinutes);
   els.weekCapacityDetail.textContent = `${formatDuration(capacity.blockedMinutes)} unavailable`;
+}
+
+function showRiskQueueFilter() {
+  state.filter = "risk";
+  persistAndRender();
 }
 
 function handleQueueClick(event) {
@@ -1993,16 +2018,31 @@ function buildSchedule() {
       return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
     });
 
-  const intervals = generateWorkIntervals(120);
-  const segments = buildBlockedSegments(120);
-  const risks = [];
+  const daysAhead = getSchedulePlanningHorizon(pendingTasks);
+  const intervals = generateWorkIntervals(daysAhead);
+  const segments = buildBlockedSegments(daysAhead);
+  const riskMap = new Map();
   const unscheduled = [];
+  const now = new Date();
+  const planningHorizonEnd = addDays(startOfDay(now), daysAhead + 1);
+
+  const addRisk = (taskId, reason, priority) => {
+    const existing = riskMap.get(taskId);
+    if (existing && existing.priority >= priority) return;
+    riskMap.set(taskId, { taskId, reason, priority });
+  };
 
   pendingTasks.forEach((task) => {
     let remaining = task.estimateMinutes;
     const taskSegments = [];
     const due = new Date(task.due);
     const schedulableFrom = getTaskSchedulableStart(task);
+    const isPastDue = Number.isFinite(due.getTime()) && due < now;
+    const isDueWithinPlanningHorizon = Number.isFinite(due.getTime()) && due <= planningHorizonEnd;
+
+    if (isPastDue) {
+      addRisk(task.id, "Past due", 3);
+    }
 
     while (remaining > 0) {
       const intervalIndex = findNextSchedulableInterval(intervals, schedulableFrom);
@@ -2030,12 +2070,14 @@ function buildSchedule() {
       });
     }
 
-    if (remaining > 0) {
-      unscheduled.push({ taskId: task.id, reason: "Needs more future work time" });
+    if (remaining > 0 && (isPastDue || isDueWithinPlanningHorizon)) {
+      const reason = isPastDue ? "Past due" : "Not enough available time before due date";
+      unscheduled.push({ taskId: task.id, reason });
+      addRisk(task.id, reason, isPastDue ? 3 : 2);
     }
 
-    if (taskSegments.some((segment) => segment.end > due)) {
-      risks.push({ taskId: task.id, reason: "Scheduled after due date" });
+    if (!isPastDue && taskSegments.some((segment) => segment.end > due)) {
+      addRisk(task.id, "Not enough available time before due date", 2);
       taskSegments.forEach((segment) => {
         if (segment.end > due) segment.endsAfterDue = true;
       });
@@ -2050,9 +2092,21 @@ function buildSchedule() {
 
   return {
     segments: segments.sort((a, b) => a.start - b.start),
-    risks,
+    risks: [...riskMap.values()].map(({ taskId, reason }) => ({ taskId, reason })),
     unscheduled,
   };
+}
+
+function getSchedulePlanningHorizon(tasks) {
+  const today = startOfDay(new Date());
+  const dueDates = tasks
+    .map((task) => new Date(task.due))
+    .filter((date) => Number.isFinite(date.getTime()));
+  if (!dueDates.length) return 120;
+
+  const latestDue = dueDates.reduce((latest, date) => date > latest ? date : latest, dueDates[0]);
+  const dueOffsetDays = Math.ceil((latestDue - today) / 86400000) + 7;
+  return Math.min(366, Math.max(120, dueOffsetDays));
 }
 
 function getTaskSchedulableStart(task) {

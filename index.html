@@ -169,10 +169,10 @@
         <strong id="openCount">0</strong>
         <span id="openHours">0 hours queued</span>
       </article>
-      <article class="metric">
+      <article class="metric metric-action" id="riskMetric" role="button" tabindex="0" aria-label="Show at-risk work in the queue">
         <span class="metric-label">Deadline risk</span>
         <strong id="riskCount">0</strong>
-        <span id="riskDetail">Nothing at risk</span>
+        <span id="riskDetail">No deadline conflicts found</span>
       </article>
       <article class="metric">
         <span class="metric-label">Next due</span>
@@ -190,7 +190,7 @@
       <div class="preferences-entry-copy">
         <span class="preferences-kicker">Work Preferences</span>
         <strong>Work hours, unavailable time, and scheduling rules</strong>
-        <span id="workPreferencesSummary">Mon-Fri - 8:30 AM-5:00 PM - 0 unavailable blocks</span>
+        <span id="workPreferencesSummary">Mon-Fri - 8:30 AM-5:00 PM</span>
       </div>
       <button class="secondary-button" id="openPreferences" type="button" aria-haspopup="dialog" aria-controls="preferencesDialog">Edit preferences</button>
     </section>
@@ -298,6 +298,7 @@
         </div>
         <div class="queue-filters" role="group" aria-label="Queue filter">
           <button class="filter-button active" data-filter="open" type="button">Open</button>
+          <button class="filter-button" data-filter="risk" type="button">At Risk</button>
           <button class="filter-button" data-filter="complete" type="button">Complete</button>
           <button class="filter-button" data-filter="all" type="button">All</button>
         </div>

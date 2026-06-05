@@ -76,6 +76,7 @@ button:disabled:hover {
 }
 
 button:focus-visible,
+.metric-action:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
@@ -1261,6 +1262,18 @@ body.preferences-open {
 
 .metric span:not(.metric-label) {
   grid-area: detail;
+}
+
+.metric-action {
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.metric-action:hover {
+  transform: translateY(-1px);
+  border-color: rgba(127, 212, 198, 0.30);
+  background: rgba(32, 40, 36, 0.88);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.20);
 }
 
 .workspace {
