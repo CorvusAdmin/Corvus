@@ -6,6 +6,13 @@ const TASK_PRIORITY = "corvus-task";
 const UNAVAILABLE_PRIORITY = "corvus-unavailable";
 const HIGH_PRIORITY_WEIGHT = 3;
 const STANDARD_PRIORITY_WEIGHT = 1;
+const WORKLOAD_LEVELS = [
+  { id: "minimal", label: "Minimal Load", min: 0, max: 2 },
+  { id: "light", label: "Light Load", min: 3, max: 5 },
+  { id: "moderate", label: "Moderate Load", min: 6, max: 10 },
+  { id: "heavy", label: "Heavy Load", min: 11, max: 15 },
+  { id: "critical", label: "Critical Load", min: 16, max: Infinity },
+];
 const LOGIN_FEATHER_ASSET = "/corvus-feather-spirit.png";
 const LOGIN_RAVEN_ASSET = "/corvus-raven-spirit.png";
 const RAW_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -1646,17 +1653,22 @@ function renderMonthSchedule(range, allSegments, scheduled) {
     const items = group?.items || [];
     const visibleItems = items.slice(0, 3);
     const hiddenCount = Math.max(0, items.length - visibleItems.length);
+    const workload = calculateMonthDayWorkload(date, items);
     const workMinutes = items
       .filter((segment) => segment.type === "task")
       .reduce((sum, segment) => sum + segment.minutes, 0);
     const cell = document.createElement("article");
     cell.className = [
       "month-day",
+      `workload-${workload.level.id}`,
       date.getMonth() === range.start.getMonth() ? "" : "outside-month",
       isSameDay(date, today) ? "today" : "",
       items.length ? "has-items" : "",
     ].filter(Boolean).join(" ");
     cell.dataset.day = key;
+    cell.dataset.workloadScore = String(workload.score);
+    cell.title = workload.tooltip;
+    cell.setAttribute("aria-label", `${formatDayHeading(date)}. ${workload.level.label}. Workload Score ${workload.score}.`);
     cell.innerHTML = `
       <div class="month-day-top">
         <span class="month-date-number">${date.getDate()}</span>
@@ -1693,6 +1705,66 @@ function renderMonthScheduleItem(segment) {
       <span class="month-item-title">${renderPriorityMarker(segment)}${escapeHtml(title)}</span>
     </div>
   `;
+}
+
+function calculateMonthDayWorkload(date, items) {
+  const day = startOfDay(date);
+  const today = startOfDay(new Date());
+  const scoredTaskIds = new Set();
+  let score = 0;
+
+  const taskSegments = items.filter((segment) => segment.type === "task");
+  const uniqueScheduledTasks = new Map();
+  taskSegments.forEach((segment) => {
+    if (!segment.taskId || uniqueScheduledTasks.has(segment.taskId)) return;
+    uniqueScheduledTasks.set(segment.taskId, segment);
+  });
+
+  uniqueScheduledTasks.forEach((segment, taskId) => {
+    score += getTaskPriorityWeight(segment);
+    scoredTaskIds.add(taskId);
+  });
+
+  const dueTasks = state.tasks.filter((task) => !task.complete && isSameDay(new Date(task.due), day));
+  dueTasks.forEach((task) => {
+    if (scoredTaskIds.has(task.id)) return;
+    score += getTaskPriorityWeight(task);
+    scoredTaskIds.add(task.id);
+  });
+
+  const blockedCount = items.filter((segment) => segment.type === "blocked").length;
+  score += blockedCount;
+
+  const overdueTasks = day >= today
+    ? state.tasks.filter((task) => !task.complete && startOfDay(new Date(task.due)) < day)
+    : [];
+  overdueTasks.forEach((task) => {
+    if (scoredTaskIds.has(task.id)) return;
+    score += getTaskPriorityWeight(task);
+    scoredTaskIds.add(task.id);
+  });
+
+  const highPriorityCount = [...scoredTaskIds]
+    .map((taskId) => state.tasks.find((task) => task.id === taskId))
+    .filter((task) => task?.high_priority).length;
+  const contributors = [
+    `${uniqueScheduledTasks.size} scheduled task${uniqueScheduledTasks.size === 1 ? "" : "s"}`,
+    `${dueTasks.length} task${dueTasks.length === 1 ? "" : "s"} due`,
+    `${blockedCount} unavailable block${blockedCount === 1 ? "" : "s"}`,
+    `${overdueTasks.length} overdue item${overdueTasks.length === 1 ? "" : "s"} carrying forward`,
+    `${highPriorityCount} high priority item${highPriorityCount === 1 ? "" : "s"}`,
+  ];
+  const level = getWorkloadLevel(score);
+
+  return {
+    score,
+    level,
+    tooltip: `Workload Score: ${score}\n${level.label}\n${contributors.join("\n")}`,
+  };
+}
+
+function getWorkloadLevel(score) {
+  return WORKLOAD_LEVELS.find((level) => score >= level.min && score <= level.max) || WORKLOAD_LEVELS[0];
 }
 
 function renderScheduleViewButtons() {

@@ -1822,6 +1822,7 @@ body.preferences-open {
 }
 
 .month-day {
+  --workload-alpha: 0;
   min-width: 0;
   min-height: 118px;
   display: grid;
@@ -1830,17 +1831,45 @@ body.preferences-open {
   overflow: hidden;
   border: 1px solid rgba(42, 52, 48, 0.92);
   border-radius: 7px;
-  background: rgba(19, 24, 23, 0.82);
+  background:
+    linear-gradient(135deg, rgba(127, 212, 198, var(--workload-alpha)), transparent 64%),
+    rgba(19, 24, 23, 0.82);
   padding: 8px;
 }
 
 .month-day.has-items {
-  background: rgba(23, 29, 27, 0.94);
+  background:
+    linear-gradient(135deg, rgba(127, 212, 198, var(--workload-alpha)), transparent 64%),
+    rgba(23, 29, 27, 0.94);
+}
+
+.month-day.workload-light {
+  --workload-alpha: 0.08;
+  border-color: rgba(127, 212, 198, 0.18);
+}
+
+.month-day.workload-moderate {
+  --workload-alpha: 0.17;
+  border-color: rgba(127, 212, 198, 0.24);
+}
+
+.month-day.workload-heavy {
+  --workload-alpha: 0.27;
+  border-color: rgba(127, 212, 198, 0.32);
+  box-shadow: inset 0 0 0 1px rgba(127, 212, 198, 0.05);
+}
+
+.month-day.workload-critical {
+  --workload-alpha: 0.36;
+  border-color: rgba(184, 238, 228, 0.38);
+  box-shadow: inset 0 0 0 1px rgba(184, 238, 228, 0.08), 0 0 20px rgba(127, 212, 198, 0.06);
 }
 
 .month-day.outside-month {
   opacity: 0.48;
-  background: rgba(19, 24, 23, 0.46);
+  background:
+    linear-gradient(135deg, rgba(127, 212, 198, var(--workload-alpha)), transparent 64%),
+    rgba(19, 24, 23, 0.46);
 }
 
 .month-day.today {
