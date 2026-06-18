@@ -246,6 +246,12 @@
             <textarea id="taskNotes" rows="4" placeholder="Owner, vendor, board decision, account number"></textarea>
           </label>
 
+          <label class="priority-toggle">
+            <input id="taskHighPriority" type="checkbox">
+            <span aria-hidden="true">☆</span>
+            High Priority
+          </label>
+
           <button class="primary-button" type="submit">Add task</button>
         </form>
 
@@ -298,6 +304,7 @@
         </div>
         <div class="queue-filters" role="group" aria-label="Queue filter">
           <button class="filter-button active" data-filter="open" type="button">Open</button>
+          <button class="filter-button" data-filter="high" type="button">High Priority</button>
           <button class="filter-button" data-filter="risk" type="button">At Risk</button>
           <button class="filter-button" data-filter="complete" type="button">Complete</button>
           <button class="filter-button" data-filter="all" type="button">All</button>

@@ -4,6 +4,8 @@ const DEFAULT_SCHEDULE_TITLE = "Corvus Planner";
 const METADATA_PRIORITY = "corvus-metadata";
 const TASK_PRIORITY = "corvus-task";
 const UNAVAILABLE_PRIORITY = "corvus-unavailable";
+const HIGH_PRIORITY_WEIGHT = 3;
+const STANDARD_PRIORITY_WEIGHT = 1;
 const LOGIN_FEATHER_ASSET = "/corvus-feather-spirit.png";
 const LOGIN_RAVEN_ASSET = "/corvus-raven-spirit.png";
 const RAW_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -136,6 +138,7 @@ const els = {
   taskRecurrence: document.querySelector("#taskRecurrence"),
   taskRepeatUntil: document.querySelector("#taskRepeatUntil"),
   taskNotes: document.querySelector("#taskNotes"),
+  taskHighPriority: document.querySelector("#taskHighPriority"),
   categoryForm: document.querySelector("#categoryForm"),
   categoryName: document.querySelector("#categoryName"),
   categoryColor: document.querySelector("#categoryColor"),
@@ -324,6 +327,7 @@ function bindEvents() {
       estimateMinutes: roundedEstimate,
       due: occurrenceDue.toISOString(),
       notes: els.taskNotes.value.trim(),
+      high_priority: els.taskHighPriority.checked,
       complete: false,
       createdAt: new Date().toISOString(),
     }));
@@ -334,6 +338,7 @@ function bindEvents() {
     els.taskEstimate.value = "60";
     els.taskCategory.value = state.categories[0]?.id || "other";
     els.taskRecurrence.value = "none";
+    els.taskHighPriority.checked = false;
     setDefaultDue();
     syncTaskRepeatUntil();
     persistAndRender();
@@ -1138,6 +1143,7 @@ function normalizeTask(task, row) {
     estimateMinutes: Number(task?.estimateMinutes) || 60,
     due: task?.due || fallbackDue,
     notes: task?.notes || "",
+    high_priority: Boolean(task?.high_priority ?? task?.highPriority),
     complete: typeof task?.complete === "boolean" ? task.complete : row.status === "complete",
     createdAt: task?.createdAt || row.created_at || new Date().toISOString(),
   };
@@ -1595,9 +1601,10 @@ function renderSchedule() {
         row.innerHTML = `
           <div class="schedule-time">${formatTime(segment.start)}<br>${formatTime(segment.end)}</div>
           <div class="schedule-body">
-            <div class="schedule-title">${escapeHtml(segment.title)}${segment.partCount > 1 ? `, part ${segment.partNumber}` : ""}</div>
+            <div class="schedule-title">${renderPriorityMarker(segment)}${escapeHtml(segment.title)}${segment.partCount > 1 ? `, part ${segment.partNumber}` : ""}</div>
             <div class="schedule-meta">
               <span class="category-pill" style="background:${escapeAttribute(category.color)}">${escapeHtml(category.name)}</span>
+              ${renderPriorityBadge(segment)}
               <span class="time-pill">${formatDuration(segment.minutes)}</span>
               ${segment.endsAfterDue ? `<span class="risk-pill">After due date</span>` : ""}
             </div>
@@ -1676,13 +1683,14 @@ function renderMonthScheduleItem(segment) {
   const classes = [
     "month-calendar-item",
     segment.type === "blocked" ? "blocked" : "",
+    segment.high_priority ? "priority" : "",
     segment.endsAfterDue ? "risk" : "",
   ].filter(Boolean).join(" ");
   return `
     <div class="${classes}" style="--item-color:${escapeAttribute(color)}" title="${escapeAttribute(`${formatTime(segment.start)} to ${formatTime(segment.end)} - ${title}`)}">
       <span class="month-item-dot" aria-hidden="true"></span>
       <span class="month-item-time">${formatTime(segment.start)}</span>
-      <span class="month-item-title">${escapeHtml(title)}</span>
+      <span class="month-item-title">${renderPriorityMarker(segment)}${escapeHtml(title)}</span>
     </div>
   `;
 }
@@ -1734,10 +1742,16 @@ function renderQueue() {
     .sort(compareQueueTasks);
 
   if (!tasks.length) {
-    const emptyTitle = state.filter === "risk" ? "No deadline risks" : "No tasks in this view";
+    const emptyTitle = state.filter === "risk"
+      ? "No deadline risks"
+      : state.filter === "high"
+        ? "No high priority tasks"
+        : "No tasks in this view";
     const emptyBody = state.filter === "risk"
       ? "Work that may miss its deadline will appear here."
-      : "Tasks will appear here after they are added.";
+      : state.filter === "high"
+        ? "Flag important work and it will appear here."
+        : "Tasks will appear here after they are added.";
     appendEmpty(els.queueList, emptyTitle, emptyBody);
     return;
   }
@@ -1751,6 +1765,7 @@ function renderQueue() {
 
 function taskMatchesQueueFilter(task, riskByTask = new Map()) {
   if (state.filter === "open") return !task.complete;
+  if (state.filter === "high") return !task.complete && task.high_priority;
   if (state.filter === "risk") return !task.complete && riskByTask.has(task.id);
   if (state.filter === "complete") return task.complete;
   return true;
@@ -1758,7 +1773,13 @@ function taskMatchesQueueFilter(task, riskByTask = new Map()) {
 
 function compareQueueTasks(a, b) {
   if (a.complete !== b.complete) return a.complete ? 1 : -1;
-  return new Date(a.due) - new Date(b.due);
+  const dayDiff = startOfDay(new Date(a.due)) - startOfDay(new Date(b.due));
+  if (dayDiff !== 0) return dayDiff;
+  const priorityDiff = getTaskPriorityWeight(b) - getTaskPriorityWeight(a);
+  if (priorityDiff !== 0) return priorityDiff;
+  const dueDiff = new Date(a.due) - new Date(b.due);
+  if (dueDiff !== 0) return dueDiff;
+  return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
 }
 
 function groupTasksForQueue(tasks) {
@@ -1772,6 +1793,7 @@ function groupTasksForQueue(tasks) {
         task,
         complete: task.complete,
         sortDate: new Date(task.due),
+        priorityWeight: getTaskPriorityWeight(task),
       });
       return;
     }
@@ -1801,11 +1823,16 @@ function groupTasksForQueue(tasks) {
     group.completedTasks = group.allTasks.filter((task) => task.complete);
     group.complete = group.openTasks.length === 0;
     group.sortDate = new Date((group.displayTasks[0] || group.allTasks[0]).due);
+    group.priorityWeight = Math.max(...group.displayTasks.map(getTaskPriorityWeight), STANDARD_PRIORITY_WEIGHT);
     items.push(group);
   });
 
   return items.sort((a, b) => {
     if (a.complete !== b.complete) return a.complete ? 1 : -1;
+    const dayDiff = startOfDay(a.sortDate) - startOfDay(b.sortDate);
+    if (dayDiff !== 0) return dayDiff;
+    const priorityDiff = (b.priorityWeight || getTaskPriorityWeight(b.task)) - (a.priorityWeight || getTaskPriorityWeight(a.task));
+    if (priorityDiff !== 0) return priorityDiff;
     return a.sortDate - b.sortDate;
   });
 }
@@ -1814,18 +1841,20 @@ function renderTaskCard(task, riskByTask) {
   const category = getCategory(task.categoryId);
   const risk = riskByTask.get(task.id);
   const card = document.createElement("article");
-  card.className = `item-card ${task.complete ? "task-complete" : ""}`;
+  card.className = `item-card ${task.complete ? "task-complete" : ""} ${task.high_priority ? "high-priority-task" : ""}`;
   card.innerHTML = `
     <div class="item-top">
-      <div class="item-title">${escapeHtml(task.title)}</div>
+      <div class="item-title">${renderPriorityMarker(task)}${escapeHtml(task.title)}</div>
       <span class="category-pill" style="background:${escapeAttribute(category.color)}">${escapeHtml(category.name)}</span>
     </div>
     <div class="item-meta">
       ${formatDuration(task.estimateMinutes)} needed - due ${formatDateTime(new Date(task.due))}
       ${risk ? ` - <span class="risk-pill">${escapeHtml(risk.reason)}</span>` : ""}
+      ${renderPriorityBadge(task)}
     </div>
     ${task.notes ? `<div class="item-notes">${escapeHtml(task.notes)}</div>` : ""}
     <div class="item-actions">
+      <button class="small-button ${task.high_priority ? "priority-active" : ""}" type="button" data-task-priority="${escapeAttribute(task.id)}">${task.high_priority ? "Unmark priority" : "Mark high priority"}</button>
       <button class="small-button" type="button" data-task-toggle="${escapeAttribute(task.id)}">${task.complete ? "Reopen" : "Complete"}</button>
       <button class="small-button danger" type="button" data-task-delete="${escapeAttribute(task.id)}">Delete</button>
     </div>
@@ -1848,6 +1877,7 @@ function renderTaskSeries(group, riskByTask) {
     ? group.displayTasks.find((task) => riskByTask.has(task.id)) || group.displayTasks[0]
     : group.openTasks.find((task) => new Date(task.due) >= new Date()) || group.openTasks[0] || group.displayTasks[0];
   const riskCount = group.displayTasks.filter((task) => riskByTask.has(task.id)).length;
+  const highPriorityCount = group.displayTasks.filter((task) => task.high_priority).length;
   const detailLabel = state.filter === "open"
     ? "View open dates"
     : state.filter === "complete"
@@ -1858,10 +1888,11 @@ function renderTaskSeries(group, riskByTask) {
     return `
       <div class="series-date-row task-series-row ${task.complete ? "task-complete" : ""}">
         <span class="series-row-copy">
-          <strong>${escapeHtml(formatDateTime(new Date(task.due)))}</strong>
-          <span>${formatDuration(task.estimateMinutes)} needed${risk ? ` - ${escapeHtml(risk.reason)}` : ""}</span>
+          <strong>${renderPriorityMarker(task)}${escapeHtml(formatDateTime(new Date(task.due)))}</strong>
+          <span>${formatDuration(task.estimateMinutes)} needed${task.high_priority ? " - High Priority" : ""}${risk ? ` - ${escapeHtml(risk.reason)}` : ""}</span>
         </span>
         <span class="series-row-actions">
+          <button class="small-button ${task.high_priority ? "priority-active" : ""}" type="button" data-task-priority="${escapeAttribute(task.id)}">${task.high_priority ? "Unmark priority" : "Mark priority"}</button>
           <button class="small-button" type="button" data-task-toggle="${escapeAttribute(task.id)}">${task.complete ? "Reopen" : "Complete"}</button>
           <button class="small-button danger" type="button" data-task-delete="${escapeAttribute(task.id)}">Delete</button>
         </span>
@@ -1869,13 +1900,14 @@ function renderTaskSeries(group, riskByTask) {
     `;
   }).join("");
 
-  card.className = `item-card series-card ${group.complete ? "task-complete" : ""}`;
+  card.className = `item-card series-card ${group.complete ? "task-complete" : ""} ${highPriorityCount ? "high-priority-task" : ""}`;
   card.innerHTML = `
     <div class="item-top">
       <div>
-        <div class="item-title">${escapeHtml(group.title)}</div>
+        <div class="item-title">${highPriorityCount ? renderPriorityMarker({ high_priority: true }) : ""}${escapeHtml(group.title)}</div>
         <div class="item-meta">
           ${escapeHtml(formatRecurrence(group.recurrence))} series - ${group.allTasks.length} task${group.allTasks.length === 1 ? "" : "s"} - ${group.openTasks.length} open, ${group.completedTasks.length} complete - ${escapeHtml(formatShortDate(new Date(first.due)))} to ${escapeHtml(formatShortDate(new Date(last.due)))}
+          ${highPriorityCount ? ` - <span class="priority-pill">${highPriorityCount} high priority</span>` : ""}
           ${riskCount ? ` - <span class="risk-pill">${riskCount} at risk</span>` : ""}
         </div>
       </div>
@@ -1934,8 +1966,14 @@ function showRiskQueueFilter() {
 
 function handleQueueClick(event) {
   const toggleId = event.target.closest("[data-task-toggle]")?.dataset.taskToggle;
+  const priorityId = event.target.closest("[data-task-priority]")?.dataset.taskPriority;
   const deleteId = event.target.closest("[data-task-delete]")?.dataset.taskDelete;
   const deleteSeriesId = event.target.closest("[data-task-series-delete]")?.dataset.taskSeriesDelete;
+
+  if (priorityId) {
+    state.tasks = state.tasks.map((task) => task.id === priorityId ? { ...task, high_priority: !task.high_priority } : task);
+    persistAndRender();
+  }
 
   if (toggleId) {
     state.tasks = state.tasks.map((task) => task.id === toggleId ? { ...task, complete: !task.complete } : task);
@@ -1951,6 +1989,18 @@ function handleQueueClick(event) {
     state.tasks = state.tasks.filter((task) => task.seriesId !== deleteSeriesId);
     persistAndRender();
   }
+}
+
+function getTaskPriorityWeight(task) {
+  return task?.high_priority ? HIGH_PRIORITY_WEIGHT : STANDARD_PRIORITY_WEIGHT;
+}
+
+function renderPriorityMarker(task) {
+  return task?.high_priority ? '<span class="priority-star" aria-hidden="true">★</span>' : "";
+}
+
+function renderPriorityBadge(task) {
+  return task?.high_priority ? ' - <span class="priority-pill">High Priority</span>' : "";
 }
 
 function handleBlockClick(event) {
@@ -2013,6 +2063,10 @@ function buildSchedule() {
   const pendingTasks = state.tasks
     .filter((task) => !task.complete)
     .sort((a, b) => {
+      const dayDiff = startOfDay(new Date(a.due)) - startOfDay(new Date(b.due));
+      if (dayDiff !== 0) return dayDiff;
+      const priorityDiff = getTaskPriorityWeight(b) - getTaskPriorityWeight(a);
+      if (priorityDiff !== 0) return priorityDiff;
       const dueDiff = new Date(a.due) - new Date(b.due);
       if (dueDiff !== 0) return dueDiff;
       return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
@@ -2062,6 +2116,7 @@ function buildSchedule() {
         taskId: task.id,
         title: task.title,
         categoryId: task.categoryId,
+        high_priority: task.high_priority,
         start,
         end,
         minutes,
