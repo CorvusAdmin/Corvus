@@ -10,11 +10,11 @@ const FOLLOW_UP_TASK_WEIGHT = 2;
 const MEETING_EVENT_WEIGHT = 1;
 const OVERDUE_TASK_WEIGHT = 4;
 const WORKLOAD_LEVELS = [
-  { id: "minimal", label: "Minimal Load", min: 0, max: 2 },
-  { id: "light", label: "Light Load", min: 3, max: 5 },
-  { id: "moderate", label: "Moderate Load", min: 6, max: 10 },
-  { id: "heavy", label: "Heavy Load", min: 11, max: 15 },
-  { id: "critical", label: "Critical Load", min: 16, max: Infinity },
+  { id: "minimal", label: "Minimal Load", min: 0, max: 3 },
+  { id: "light", label: "Light Load", min: 4, max: 7 },
+  { id: "moderate", label: "Moderate Load", min: 8, max: 12 },
+  { id: "heavy", label: "Heavy Load", min: 13, max: 18 },
+  { id: "critical", label: "Critical Load", min: 19, max: Infinity },
 ];
 const LOGIN_FEATHER_ASSET = "/corvus-feather-spirit.png";
 const LOGIN_RAVEN_ASSET = "/corvus-raven-spirit.png";
