@@ -1675,7 +1675,6 @@ function renderMonthSchedule(range, allSegments, scheduled) {
     ].filter(Boolean).join(" ");
     cell.dataset.day = key;
     cell.dataset.workloadScore = String(workload.score);
-    cell.title = workload.tooltip;
     cell.setAttribute("aria-label", `${formatDayHeading(date)}. ${workload.level.label}. Workload Score ${workload.score}.`);
     if (workload.hasPopover) {
       cell.tabIndex = 0;
