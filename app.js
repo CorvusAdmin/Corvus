@@ -6,6 +6,9 @@ const TASK_PRIORITY = "corvus-task";
 const UNAVAILABLE_PRIORITY = "corvus-unavailable";
 const HIGH_PRIORITY_WEIGHT = 3;
 const STANDARD_PRIORITY_WEIGHT = 1;
+const FOLLOW_UP_TASK_WEIGHT = 2;
+const MEETING_EVENT_WEIGHT = 1;
+const OVERDUE_TASK_WEIGHT = 4;
 const WORKLOAD_LEVELS = [
   { id: "minimal", label: "Minimal Load", min: 0, max: 2 },
   { id: "light", label: "Light Load", min: 3, max: 5 },
@@ -371,8 +374,13 @@ function bindEvents() {
   });
 
   els.queueList.addEventListener("click", handleQueueClick);
+  els.scheduleList.addEventListener("click", handleScheduleClick);
   els.blockList.addEventListener("click", handleBlockClick);
   els.categoryList.addEventListener("click", handleCategoryClick);
+  document.addEventListener("click", handleDocumentClick);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeWorkloadPopovers();
+  });
 
   document.querySelectorAll(".filter-button").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1669,6 +1677,12 @@ function renderMonthSchedule(range, allSegments, scheduled) {
     cell.dataset.workloadScore = String(workload.score);
     cell.title = workload.tooltip;
     cell.setAttribute("aria-label", `${formatDayHeading(date)}. ${workload.level.label}. Workload Score ${workload.score}.`);
+    if (workload.hasPopover) {
+      cell.tabIndex = 0;
+      cell.setAttribute("role", "button");
+      cell.setAttribute("aria-describedby", `workload-popover-${key}`);
+      cell.dataset.workloadPopover = "true";
+    }
     cell.innerHTML = `
       <div class="month-day-top">
         <span class="month-date-number">${date.getDate()}</span>
@@ -1678,6 +1692,7 @@ function renderMonthSchedule(range, allSegments, scheduled) {
         ${visibleItems.map(renderMonthScheduleItem).join("")}
         ${hiddenCount ? `<div class="month-more">+${hiddenCount} more</div>` : ""}
       </div>
+      ${workload.hasPopover ? renderWorkloadPopover(key, workload) : ""}
     `;
     grid.append(cell);
   }
@@ -1721,50 +1736,114 @@ function calculateMonthDayWorkload(date, items) {
   });
 
   uniqueScheduledTasks.forEach((segment, taskId) => {
-    score += getTaskPriorityWeight(segment);
+    score += getWorkloadTaskWeight(segment);
     scoredTaskIds.add(taskId);
   });
 
   const dueTasks = state.tasks.filter((task) => !task.complete && isSameDay(new Date(task.due), day));
   dueTasks.forEach((task) => {
     if (scoredTaskIds.has(task.id)) return;
-    score += getTaskPriorityWeight(task);
+    score += getWorkloadTaskWeight(task);
     scoredTaskIds.add(task.id);
   });
 
-  const blockedCount = items.filter((segment) => segment.type === "blocked").length;
-  score += blockedCount;
+  const blockedItems = items.filter((segment) => segment.type === "blocked");
+  score += blockedItems.length * MEETING_EVENT_WEIGHT;
 
   const overdueTasks = day >= today
     ? state.tasks.filter((task) => !task.complete && startOfDay(new Date(task.due)) < day)
     : [];
   overdueTasks.forEach((task) => {
     if (scoredTaskIds.has(task.id)) return;
-    score += getTaskPriorityWeight(task);
+    score += OVERDUE_TASK_WEIGHT;
     scoredTaskIds.add(task.id);
   });
 
-  const highPriorityCount = [...scoredTaskIds]
+  const scoredTasks = [...scoredTaskIds]
     .map((taskId) => state.tasks.find((task) => task.id === taskId))
-    .filter((task) => task?.high_priority).length;
+    .filter(Boolean);
+  const highPriorityCount = scoredTasks.filter((task) => task.high_priority).length;
+  const followUpDueCount = dueTasks.filter(isFollowUpTask).length;
+  const standardTaskCount = scoredTasks
+    .filter((task) => !task.high_priority && !isFollowUpTask(task))
+    .length;
+  const categoryCounts = getWorkloadCategoryCounts(scoredTasks, blockedItems);
   const contributors = [
-    `${uniqueScheduledTasks.size} scheduled task${uniqueScheduledTasks.size === 1 ? "" : "s"}`,
-    `${dueTasks.length} task${dueTasks.length === 1 ? "" : "s"} due`,
-    `${blockedCount} unavailable block${blockedCount === 1 ? "" : "s"}`,
-    `${overdueTasks.length} overdue item${overdueTasks.length === 1 ? "" : "s"} carrying forward`,
-    `${highPriorityCount} high priority item${highPriorityCount === 1 ? "" : "s"}`,
-  ];
+    highPriorityCount ? { label: "High Priority Tasks", value: highPriorityCount, points: highPriorityCount * HIGH_PRIORITY_WEIGHT } : null,
+    standardTaskCount ? { label: "Standard Tasks", value: standardTaskCount, points: standardTaskCount * STANDARD_PRIORITY_WEIGHT } : null,
+    followUpDueCount ? { label: "Follow-Ups Due", value: followUpDueCount, points: followUpDueCount * FOLLOW_UP_TASK_WEIGHT } : null,
+    blockedItems.length ? { label: "Meetings / Events", value: blockedItems.length, points: blockedItems.length * MEETING_EVENT_WEIGHT } : null,
+    overdueTasks.length ? { label: "Overdue Tasks", value: overdueTasks.length, points: overdueTasks.length * OVERDUE_TASK_WEIGHT } : null,
+  ].filter(Boolean);
   const level = getWorkloadLevel(score);
 
   return {
     score,
     level,
-    tooltip: `Workload Score: ${score}\n${level.label}\n${contributors.join("\n")}`,
+    contributors,
+    categories: categoryCounts,
+    hasPopover: score > WORKLOAD_LEVELS[0].max && contributors.length > 0,
+    tooltip: `Workload Score: ${score}\n${level.label}\n${contributors.map((item) => `${item.value} ${item.label}`).join("\n")}`,
   };
 }
 
 function getWorkloadLevel(score) {
   return WORKLOAD_LEVELS.find((level) => score >= level.min && score <= level.max) || WORKLOAD_LEVELS[0];
+}
+
+function renderWorkloadPopover(key, workload) {
+  const contributorRows = workload.contributors.map((item) => `
+    <li>
+      <span>${escapeHtml(item.label)}</span>
+      <strong>${item.value}</strong>
+    </li>
+  `).join("");
+  const categoryRows = workload.categories.length
+    ? workload.categories.map((item) => `<span>${escapeHtml(item.label)} (${item.value})</span>`).join("")
+    : "<span>General workload</span>";
+
+  return `
+    <div class="workload-popover" id="workload-popover-${escapeAttribute(key)}" role="status">
+      <div class="workload-popover-head">
+        <span>${escapeHtml(workload.level.label)}</span>
+        <strong>${workload.score}</strong>
+      </div>
+      <div class="workload-popover-section">
+        <p>Contributors</p>
+        <ul>${contributorRows}</ul>
+      </div>
+      <div class="workload-popover-section">
+        <p>Key categories</p>
+        <div class="workload-category-list">${categoryRows}</div>
+      </div>
+    </div>
+  `;
+}
+
+function getWorkloadTaskWeight(task) {
+  if (task?.high_priority) return HIGH_PRIORITY_WEIGHT;
+  if (isFollowUpTask(task)) return FOLLOW_UP_TASK_WEIGHT;
+  return STANDARD_PRIORITY_WEIGHT;
+}
+
+function isFollowUpTask(task) {
+  const category = getCategory(task?.categoryId);
+  return category.id === "board" || /follow[-\s]?up/i.test(task?.title || "");
+}
+
+function getWorkloadCategoryCounts(tasks, blockedItems) {
+  const counts = new Map();
+  tasks.forEach((task) => {
+    const category = getCategory(task.categoryId);
+    counts.set(category.name, (counts.get(category.name) || 0) + 1);
+  });
+  blockedItems.forEach((item) => {
+    counts.set(item.title || "Unavailable Time", (counts.get(item.title || "Unavailable Time") || 0) + 1);
+  });
+  return [...counts.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label))
+    .slice(0, 4);
 }
 
 function renderScheduleViewButtons() {
@@ -2034,6 +2113,26 @@ function renderMetrics() {
 function showRiskQueueFilter() {
   state.filter = "risk";
   persistAndRender();
+}
+
+function handleScheduleClick(event) {
+  const day = event.target.closest("[data-workload-popover]");
+  if (!day || !els.scheduleList.contains(day)) return;
+  event.stopPropagation();
+  const isOpen = day.classList.contains("popover-open");
+  closeWorkloadPopovers(day);
+  day.classList.toggle("popover-open", !isOpen);
+}
+
+function handleDocumentClick(event) {
+  if (event.target.closest("[data-workload-popover]")) return;
+  closeWorkloadPopovers();
+}
+
+function closeWorkloadPopovers(except = null) {
+  document.querySelectorAll(".month-day.popover-open").forEach((day) => {
+    if (day !== except) day.classList.remove("popover-open");
+  });
 }
 
 function handleQueueClick(event) {
