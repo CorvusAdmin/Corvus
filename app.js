@@ -93,6 +93,7 @@ let remoteSaveInFlight = false;
 let pendingRemoteSave = false;
 let loginSuccessGateActive = false;
 let dashboardArrivalPending = false;
+let blockEditState = null;
 
 const els = {
   authShell: document.querySelector("#authShell"),
@@ -141,6 +142,9 @@ const els = {
   blockNthControls: document.querySelector("#blockNthControls"),
   blockNthWeek: document.querySelector("#blockNthWeek"),
   blockNthDay: document.querySelector("#blockNthDay"),
+  blockEditScopeField: document.querySelector("#blockEditScopeField"),
+  blockSubmitButton: document.querySelector("#blockSubmitButton"),
+  cancelBlockEdit: document.querySelector("#cancelBlockEdit"),
   blockList: document.querySelector("#blockList"),
   taskForm: document.querySelector("#taskForm"),
   taskTitle: document.querySelector("#taskTitle"),
@@ -278,6 +282,9 @@ function bindEvents() {
   [els.blockStart, els.blockRecurrence].forEach((input) => {
     input.addEventListener("change", syncBlockRecurrenceControls);
   });
+  els.cancelBlockEdit.addEventListener("click", () => {
+    cancelBlockEdit();
+  });
 
   [els.taskDue, els.taskRecurrence].forEach((input) => {
     input.addEventListener("change", syncTaskRepeatUntil);
@@ -296,27 +303,12 @@ function bindEvents() {
       return;
     }
 
-    const recurrence = els.blockRecurrence.value || "none";
-    const repeatUntil = getRepeatUntilDate(els.blockRepeatUntil.value, start, recurrence, 6);
-    const durationMinutes = minutesBetween(start, end);
-    const seriesId = recurrence === "none" ? null : createId("series");
-    const recurrenceOptions = getBlockRecurrenceOptions(start, recurrence);
-    const occurrences = buildRecurringDates(start, recurrence, repeatUntil, recurrenceOptions).map((occurrenceStart, index) => ({
-      id: createId("block"),
-      seriesId,
-      recurrence,
-      nthWeek: recurrenceOptions.nthWeek ?? null,
-      nthDay: recurrenceOptions.nthDay ?? null,
-      occurrenceIndex: index + 1,
-      title: els.blockTitle.value.trim() || "Unavailable",
-      blockKind: els.blockKind.value || getDefaultBlockKind(els.blockTitle.value),
-      start: occurrenceStart.toISOString(),
-      end: addMinutes(occurrenceStart, durationMinutes).toISOString(),
-    }));
-
-    state.unavailable.push(...occurrences);
-    els.unavailableForm.reset();
-    setSmartDefaults();
+    if (blockEditState) {
+      saveBlockEdit(start, end);
+    } else {
+      state.unavailable.push(...buildUnavailableOccurrencesFromForm(start, end));
+      resetUnavailableForm();
+    }
     persistAndRender();
   });
 
@@ -1247,6 +1239,134 @@ function setSmartDefaults() {
   syncTaskRepeatUntil();
 }
 
+function resetUnavailableForm() {
+  blockEditState = null;
+  els.unavailableForm.reset();
+  els.blockSubmitButton.textContent = "Add unavailable time";
+  els.cancelBlockEdit.hidden = true;
+  els.blockEditScopeField.hidden = true;
+  els.blockEditScopeField.querySelectorAll("input").forEach((input) => {
+    input.checked = input.value === "single";
+  });
+  setSmartDefaults();
+}
+
+function buildUnavailableOccurrencesFromForm(start, end, options = {}) {
+  const recurrence = options.forceSingle ? "none" : (els.blockRecurrence.value || "none");
+  const repeatUntil = options.repeatUntil || getRepeatUntilDate(els.blockRepeatUntil.value, start, recurrence, 6);
+  const durationMinutes = minutesBetween(start, end);
+  const seriesId = recurrence === "none" ? null : (options.seriesId || createId("series"));
+  const recurrenceOptions = getBlockRecurrenceOptions(start, recurrence);
+  const dates = buildRecurringDates(start, recurrence, repeatUntil, recurrenceOptions);
+
+  return dates.map((occurrenceStart, index) => ({
+    id: createId("block"),
+    seriesId,
+    recurrence,
+    nthWeek: recurrenceOptions.nthWeek ?? null,
+    nthDay: recurrenceOptions.nthDay ?? null,
+    occurrenceIndex: index + 1,
+    title: els.blockTitle.value.trim() || "Unavailable",
+    blockKind: els.blockKind.value || getDefaultBlockKind(els.blockTitle.value),
+    start: occurrenceStart.toISOString(),
+    end: addMinutes(occurrenceStart, durationMinutes).toISOString(),
+  }));
+}
+
+function startBlockEdit(blockId) {
+  const block = state.unavailable.find((item) => item.id === blockId);
+  if (!block) return;
+  const groupKey = getUnavailableGroupKey(block);
+  const isSeries = Boolean(groupKey);
+
+  blockEditState = {
+    blockId,
+    groupKey,
+    isSeries,
+    originalStart: block.start,
+  };
+
+  els.blockTitle.value = block.title || "";
+  els.blockKind.value = normalizeBlockKind(block.blockKind);
+  els.blockStart.value = toInputDate(new Date(block.start));
+  els.blockEnd.value = toInputDate(new Date(block.end));
+  els.blockRecurrence.value = block.recurrence || "none";
+  els.blockRepeatUntil.value = getBlockSeriesRepeatUntil(block, groupKey);
+  els.blockSubmitButton.textContent = "Save changes";
+  els.cancelBlockEdit.hidden = false;
+  els.blockEditScopeField.hidden = !isSeries;
+  els.blockEditScopeField.querySelectorAll("input").forEach((input) => {
+    input.checked = input.value === "single";
+  });
+  syncBlockRecurrenceControls();
+  if (isNthWeekdayRecurrence(block.recurrence)) {
+    els.blockNthWeek.value = String(block.nthWeek ?? getWeekOfMonth(new Date(block.start)));
+    els.blockNthDay.value = String(block.nthDay ?? new Date(block.start).getDay());
+  }
+  els.blockTitle.focus();
+}
+
+function cancelBlockEdit() {
+  resetUnavailableForm();
+}
+
+function saveBlockEdit(start, end) {
+  const editedBlock = state.unavailable.find((block) => block.id === blockEditState.blockId);
+  if (!editedBlock) {
+    resetUnavailableForm();
+    return;
+  }
+
+  const scope = blockEditState.isSeries
+    ? els.blockEditScopeField.querySelector("input:checked")?.value || "single"
+    : "single";
+  const groupKey = blockEditState.groupKey;
+  const originalStart = new Date(blockEditState.originalStart);
+
+  if (!blockEditState.isSeries) {
+    state.unavailable = state.unavailable.filter((block) => block.id !== editedBlock.id);
+    state.unavailable.push(...buildUnavailableOccurrencesFromForm(start, end));
+    resetUnavailableForm();
+    return;
+  }
+
+  if (scope === "single") {
+    state.unavailable = state.unavailable.filter((block) => block.id !== editedBlock.id);
+    state.unavailable.push(...buildUnavailableOccurrencesFromForm(start, end, { forceSingle: true }));
+    resetUnavailableForm();
+    return;
+  }
+
+  if (scope === "future") {
+    const pastBlocks = state.unavailable.filter((block) => (
+      getUnavailableGroupKey(block) === groupKey && new Date(block.start) < originalStart
+    ));
+    const unrelatedBlocks = state.unavailable.filter((block) => getUnavailableGroupKey(block) !== groupKey);
+    state.unavailable = [
+      ...unrelatedBlocks,
+      ...pastBlocks,
+      ...buildUnavailableOccurrencesFromForm(start, end),
+    ];
+    resetUnavailableForm();
+    return;
+  }
+
+  state.unavailable = state.unavailable.filter((block) => getUnavailableGroupKey(block) !== groupKey);
+  state.unavailable.push(...buildUnavailableOccurrencesFromForm(start, end, {
+    seriesId: editedBlock.seriesId || createId("series"),
+  }));
+  resetUnavailableForm();
+}
+
+function getBlockSeriesRepeatUntil(block, groupKey) {
+  if (!groupKey || !block.recurrence || block.recurrence === "none") return "";
+  const seriesBlocks = state.unavailable
+    .filter((item) => getUnavailableGroupKey(item) === groupKey)
+    .sort((a, b) => new Date(a.start) - new Date(b.start));
+  const last = seriesBlocks[seriesBlocks.length - 1];
+  return last ? toInputDateOnly(new Date(last.start)) : "";
+}
+
 function setDefaultDue() {
   if (els.taskDue.value) return;
   const due = new Date();
@@ -1259,7 +1379,9 @@ function setDefaultDue() {
 function syncBlockRecurrenceControls() {
   const start = parseInputDate(els.blockStart.value) || new Date();
   const until = addMonths(start, 6);
-  els.blockRepeatUntil.value = toInputDateOnly(until);
+  if (!els.blockRepeatUntil.value || els.blockRecurrence.value === "none") {
+    els.blockRepeatUntil.value = toInputDateOnly(until);
+  }
   els.blockRepeatUntil.disabled = els.blockRecurrence.value === "none";
   syncNthWeekdayDefaults(start);
 
@@ -1535,6 +1657,7 @@ function getUnavailableGroupKey(block) {
   return [
     "fallback-series",
     block.title,
+    normalizeBlockKind(block.blockKind),
     block.recurrence,
     block.nthWeek ?? "",
     block.nthDay ?? "",
@@ -1549,7 +1672,10 @@ function renderUnavailableBlock(block) {
   card.innerHTML = `
     <div class="item-top">
       <div class="item-title">${escapeHtml(block.title)}</div>
-      <button class="small-button danger" type="button" data-block-delete="${escapeAttribute(block.id)}">Remove</button>
+      <span class="series-row-actions">
+        <button class="small-button" type="button" data-block-edit="${escapeAttribute(block.id)}">Edit</button>
+        <button class="small-button danger" type="button" data-block-delete="${escapeAttribute(block.id)}">Remove</button>
+      </span>
     </div>
     <div class="item-meta">${formatDateTimeRange(new Date(block.start), new Date(block.end))} - ${escapeHtml(getBlockKindLabel(block.blockKind))}</div>
   `;
@@ -1564,7 +1690,10 @@ function renderUnavailableSeries(group) {
   const dateRows = group.blocks.map((block) => `
     <div class="series-date-row">
       <span>${escapeHtml(formatDateTimeRange(new Date(block.start), new Date(block.end)))}</span>
-      <button class="small-button danger" type="button" data-block-delete="${escapeAttribute(block.id)}">Remove</button>
+      <span class="series-row-actions">
+        <button class="small-button" type="button" data-block-edit="${escapeAttribute(block.id)}">Edit</button>
+        <button class="small-button danger" type="button" data-block-delete="${escapeAttribute(block.id)}">Remove</button>
+      </span>
     </div>
   `).join("");
 
@@ -1578,7 +1707,10 @@ function renderUnavailableSeries(group) {
           - ${escapeHtml(getBlockKindLabel(first.blockKind))}
         </div>
       </div>
-      <button class="small-button danger" type="button" data-block-series-delete="${escapeAttribute(group.seriesKey)}">Delete series</button>
+      <span class="series-row-actions">
+        <button class="small-button" type="button" data-block-edit="${escapeAttribute(next.id)}">Edit next</button>
+        <button class="small-button danger" type="button" data-block-series-delete="${escapeAttribute(group.seriesKey)}">Delete series</button>
+      </span>
     </div>
     <div class="series-next">Next: ${escapeHtml(formatDateTimeRange(new Date(next.start), new Date(next.end)))}</div>
     <details class="series-details">
@@ -2336,8 +2468,13 @@ function renderPriorityBadge(task) {
 }
 
 function handleBlockClick(event) {
+  const editId = event.target.closest("[data-block-edit]")?.dataset.blockEdit;
   const deleteId = event.target.closest("[data-block-delete]")?.dataset.blockDelete;
   const deleteSeriesId = event.target.closest("[data-block-series-delete]")?.dataset.blockSeriesDelete;
+  if (editId) {
+    startBlockEdit(editId);
+    return;
+  }
   if (deleteId) {
     state.unavailable = state.unavailable.filter((block) => block.id !== deleteId);
     persistAndRender();

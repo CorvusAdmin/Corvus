@@ -429,7 +429,25 @@
                   </select>
                 </label>
               </div>
-              <button class="primary-button" type="submit">Add unavailable time</button>
+              <fieldset class="edit-scope-field" id="blockEditScopeField" hidden>
+                <legend>Edit recurring block</legend>
+                <label class="inline-option">
+                  <input type="radio" name="blockEditScope" value="single" checked>
+                  Edit this occurrence only
+                </label>
+                <label class="inline-option">
+                  <input type="radio" name="blockEditScope" value="future">
+                  Edit this and all future occurrences
+                </label>
+                <label class="inline-option">
+                  <input type="radio" name="blockEditScope" value="series">
+                  Edit entire recurring series
+                </label>
+              </fieldset>
+              <div class="form-actions">
+                <button class="primary-button" id="blockSubmitButton" type="submit">Add unavailable time</button>
+                <button class="ghost-button" id="cancelBlockEdit" type="button" hidden>Cancel edit</button>
+              </div>
             </form>
             <div id="blockList" class="item-list" aria-live="polite"></div>
           </section>
