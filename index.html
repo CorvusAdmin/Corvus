@@ -370,6 +370,14 @@
                 <input id="blockTitle" type="text" placeholder="Board meeting">
               </label>
               <label>
+                Block type
+                <select id="blockKind">
+                  <option value="nonWork">Non-work unavailable</option>
+                  <option value="workEvent">Work meeting/event</option>
+                  <option value="highImpact">High-impact meeting/event</option>
+                </select>
+              </label>
+              <label>
                 From
                 <input id="blockStart" type="datetime-local">
               </label>

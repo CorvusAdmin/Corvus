@@ -7,7 +7,6 @@ const UNAVAILABLE_PRIORITY = "corvus-unavailable";
 const HIGH_PRIORITY_WEIGHT = 3;
 const STANDARD_PRIORITY_WEIGHT = 1;
 const FOLLOW_UP_TASK_WEIGHT = 2;
-const MEETING_EVENT_WEIGHT = 1;
 const OVERDUE_TASK_WEIGHT = 4;
 const DEBUG_WORKLOAD_SCORING = true;
 const workloadDebugByDay = new Map();
@@ -134,6 +133,7 @@ const els = {
   chunkMinutes: document.querySelector("#chunkMinutes"),
   unavailableForm: document.querySelector("#unavailableForm"),
   blockTitle: document.querySelector("#blockTitle"),
+  blockKind: document.querySelector("#blockKind"),
   blockStart: document.querySelector("#blockStart"),
   blockEnd: document.querySelector("#blockEnd"),
   blockRecurrence: document.querySelector("#blockRecurrence"),
@@ -309,6 +309,7 @@ function bindEvents() {
       nthDay: recurrenceOptions.nthDay ?? null,
       occurrenceIndex: index + 1,
       title: els.blockTitle.value.trim() || "Unavailable",
+      blockKind: els.blockKind.value || getDefaultBlockKind(els.blockTitle.value),
       start: occurrenceStart.toISOString(),
       end: addMinutes(occurrenceStart, durationMinutes).toISOString(),
     }));
@@ -1171,6 +1172,7 @@ function normalizeTask(task, row) {
 
 function normalizeUnavailableBlock(block, row) {
   const start = block?.start || row.start_time || new Date().toISOString();
+  const title = block?.title || row.title || "Unavailable";
   return {
     id: block?.id || row.id || createId("block"),
     seriesId: block?.seriesId || null,
@@ -1178,10 +1180,38 @@ function normalizeUnavailableBlock(block, row) {
     nthWeek: block?.nthWeek ?? null,
     nthDay: block?.nthDay ?? null,
     occurrenceIndex: block?.occurrenceIndex || 1,
-    title: block?.title || row.title || "Unavailable",
+    title,
+    blockKind: normalizeBlockKind(block?.blockKind || block?.kind || getDefaultBlockKind(title)),
     start,
     end: block?.end || row.end_time || addMinutes(new Date(start), 60).toISOString(),
   };
+}
+
+function normalizeBlockKind(kind) {
+  return ["nonWork", "workEvent", "highImpact"].includes(kind) ? kind : "nonWork";
+}
+
+function getDefaultBlockKind(title = "") {
+  const text = String(title).toLowerCase();
+  if (/(lunch|break|personal|out of office|oof|pto|vacation|blocked personal)/.test(text)) return "nonWork";
+  if (/(board|legal|hearing|budget|insurance|emergency|escalation)/.test(text)) return "highImpact";
+  if (/(meeting|call|inspection|walk|walkthrough|vendor|resident|client|site|appointment)/.test(text)) return "workEvent";
+  return "nonWork";
+}
+
+function getBlockKindLabel(kind) {
+  const normalized = normalizeBlockKind(kind);
+  if (normalized === "highImpact") return "High-impact meeting/event";
+  if (normalized === "workEvent") return "Work meeting/event";
+  return "Non-work unavailable";
+}
+
+function getBlockWorkloadPoints(block) {
+  const kind = normalizeBlockKind(block?.blockKind);
+  if (kind === "nonWork") return 0;
+  const minutes = Math.max(0, Number(block?.minutes) || minutesBetween(new Date(block.start), new Date(block.end)));
+  const base = minutes < 30 ? 1 : minutes <= 60 ? 2 : minutes <= 120 ? 3 : 4;
+  return kind === "highImpact" ? base + 2 : base;
 }
 
 function convertScheduleItemToTask(row) {
@@ -1211,6 +1241,7 @@ function setSmartDefaults() {
   els.blockStart.value = toInputDate(nextHour);
   els.blockEnd.value = toInputDate(blockEnd);
   els.blockRecurrence.value = "none";
+  els.blockKind.value = "nonWork";
   syncBlockRecurrenceControls();
   setDefaultDue();
   syncTaskRepeatUntil();
@@ -1474,6 +1505,7 @@ function groupUnavailableForDisplay(blocks) {
         nthWeek: block.nthWeek,
         nthDay: block.nthDay,
         title: block.title,
+        blockKind: block.blockKind,
         blocks: [],
         start: new Date(block.start),
       });
@@ -1519,7 +1551,7 @@ function renderUnavailableBlock(block) {
       <div class="item-title">${escapeHtml(block.title)}</div>
       <button class="small-button danger" type="button" data-block-delete="${escapeAttribute(block.id)}">Remove</button>
     </div>
-    <div class="item-meta">${formatDateTimeRange(new Date(block.start), new Date(block.end))}</div>
+    <div class="item-meta">${formatDateTimeRange(new Date(block.start), new Date(block.end))} - ${escapeHtml(getBlockKindLabel(block.blockKind))}</div>
   `;
   return card;
 }
@@ -1543,6 +1575,7 @@ function renderUnavailableSeries(group) {
         <div class="item-title">${escapeHtml(group.title)}</div>
         <div class="item-meta">
           ${escapeHtml(formatRecurrence(group.recurrence, group))} series - ${group.blocks.length} date${group.blocks.length === 1 ? "" : "s"} - ${escapeHtml(formatShortDate(new Date(first.start)))} to ${escapeHtml(formatShortDate(new Date(last.start)))}
+          - ${escapeHtml(getBlockKindLabel(first.blockKind))}
         </div>
       </div>
       <button class="small-button danger" type="button" data-block-series-delete="${escapeAttribute(group.seriesKey)}">Delete series</button>
@@ -1769,7 +1802,9 @@ function calculateMonthDayWorkload(date, items) {
   });
 
   const blockedItems = items.filter((segment) => segment.type === "blocked");
-  score += blockedItems.length * MEETING_EVENT_WEIGHT;
+  const meetingBlocks = blockedItems.filter((segment) => normalizeBlockKind(segment.blockKind) !== "nonWork");
+  const nonWorkBlocks = blockedItems.filter((segment) => normalizeBlockKind(segment.blockKind) === "nonWork");
+  score += meetingBlocks.reduce((sum, block) => sum + getBlockWorkloadPoints(block), 0);
 
   const scoredTasks = [...scoredTaskIds]
     .map((taskId) => state.tasks.find((task) => task.id === taskId))
@@ -1777,13 +1812,14 @@ function calculateMonthDayWorkload(date, items) {
   const highPriorityCount = scoredTasks.filter((task) => task.high_priority).length;
   const scheduledTaskCount = scheduledTasks.length;
   const dueTaskCount = dueTasksCounted.filter((task) => !task.high_priority && !isFollowUpTask(task)).length;
-  const categoryCounts = getWorkloadCategoryCounts(scoredTasks, blockedItems);
+  const categoryCounts = getWorkloadCategoryCounts(scoredTasks, meetingBlocks);
   const contributors = [
     scheduledTaskCount ? { label: "Scheduled Tasks", value: scheduledTaskCount, points: scheduledTasks.reduce((sum, task) => sum + (isTaskOverdueAsOfDay(task, day) ? OVERDUE_TASK_WEIGHT : getWorkloadTaskWeight(task)), 0) } : null,
     highPriorityCount ? { label: "High Priority Tasks", value: highPriorityCount, points: highPriorityCount * HIGH_PRIORITY_WEIGHT } : null,
     dueTaskCount ? { label: "Tasks Due Today", value: dueTaskCount, points: dueTaskCount * STANDARD_PRIORITY_WEIGHT } : null,
     followUpTasksCounted.length ? { label: "Follow-Ups Due", value: followUpTasksCounted.length, points: followUpTasksCounted.length * FOLLOW_UP_TASK_WEIGHT } : null,
-    blockedItems.length ? { label: "Meetings / Events", value: blockedItems.length, points: blockedItems.length * MEETING_EVENT_WEIGHT } : null,
+    meetingBlocks.length ? { label: "Meetings / Events", value: meetingBlocks.length, points: meetingBlocks.reduce((sum, block) => sum + getBlockWorkloadPoints(block), 0) } : null,
+    nonWorkBlocks.length ? { label: "Unavailable Non-Work Time", value: nonWorkBlocks.length, points: 0 } : null,
     overdueTasksCounted.length ? { label: "Overdue Tasks", value: overdueTasksCounted.length, points: overdueTasksCounted.length * OVERDUE_TASK_WEIGHT } : null,
   ].filter(Boolean);
   const level = getWorkloadLevel(score);
@@ -1793,11 +1829,13 @@ function calculateMonthDayWorkload(date, items) {
     dueTasks,
     dueTasksCounted,
     followUpTasksCounted,
-    blockedItems,
+    meetingBlocks,
+    nonWorkBlocks,
     overdueTasksCounted,
     highPriorityCount,
     followUpCount: followUpTasksCounted.length,
-    meetingCount: blockedItems.length,
+    meetingCount: meetingBlocks.length,
+    nonWorkCount: nonWorkBlocks.length,
     score,
     level,
   });
@@ -1835,17 +1873,28 @@ function createMonthWorkloadDebug(details) {
     scheduledTasksIncluded: details.scheduledTasks.map((task) => formatWorkloadDebugTask(task, details.date, task.includeReason || "scheduled task")),
     dueTasksIncluded: details.dueTasksCounted.map((task) => formatWorkloadDebugTask(task, details.date, task.includeReason || "due on this date")),
     allTasksDueThisDate: details.dueTasks.map((task) => formatWorkloadDebugTask(task, details.date, "due on this date")),
-    meetingsEventsIncluded: details.blockedItems.map((item) => ({
+    meetingsEventsIncluded: details.meetingBlocks.map((item) => ({
       id: item.id || item.seriesId || "",
       title: item.title || "Unavailable",
       scheduledDate: item.start ? formatDayKey(new Date(item.start)) : "",
+      blockKind: getBlockKindLabel(item.blockKind),
+      workloadPoints: getBlockWorkloadPoints(item),
       reasonIncluded: "meeting/event on this date",
+    })),
+    unavailableNonWorkIncluded: details.nonWorkBlocks.map((item) => ({
+      id: item.id || item.seriesId || "",
+      title: item.title || "Unavailable",
+      scheduledDate: item.start ? formatDayKey(new Date(item.start)) : "",
+      blockKind: getBlockKindLabel(item.blockKind),
+      workloadPoints: 0,
+      reasonIncluded: "non-work unavailable time on this date",
     })),
     followUpsIncluded: details.followUpTasksCounted.map((task) => formatWorkloadDebugTask(task, details.date, task.includeReason || "follow-up due on this date")),
     overdueTasksIncluded: details.overdueTasksCounted.map((task) => formatWorkloadDebugTask(task, details.date, task.includeReason || "scheduled overdue task")),
     highPriorityTaskCount: details.highPriorityCount,
     followUpCount: details.followUpCount,
     meetingEventCount: details.meetingCount,
+    unavailableNonWorkCount: details.nonWorkCount,
     finalWorkloadScore: details.score,
     assignedWorkloadLevel: details.level.label,
   };
@@ -1942,7 +1991,8 @@ function getWorkloadCategoryCounts(tasks, blockedItems) {
     counts.set(category.name, (counts.get(category.name) || 0) + 1);
   });
   blockedItems.forEach((item) => {
-    counts.set(item.title || "Unavailable Time", (counts.get(item.title || "Unavailable Time") || 0) + 1);
+    const label = normalizeBlockKind(item.blockKind) === "highImpact" ? "High-impact meetings" : "Meetings / Events";
+    counts.set(label, (counts.get(label) || 0) + 1);
   });
   return [...counts.entries()]
     .map(([label, value]) => ({ label, value }))
@@ -2515,7 +2565,10 @@ function buildBlockedSegments(daysAhead) {
   return state.unavailable
     .map((block) => ({
       type: "blocked",
+      id: block.id,
+      seriesId: block.seriesId,
       title: block.title,
+      blockKind: normalizeBlockKind(block.blockKind),
       start: new Date(block.start),
       end: new Date(block.end),
       minutes: minutesBetween(new Date(block.start), new Date(block.end)),
