@@ -10,6 +10,8 @@ const FOLLOW_UP_TASK_WEIGHT = 2;
 const MEETING_EVENT_WEIGHT = 1;
 const OVERDUE_TASK_WEIGHT = 4;
 const DEBUG_WORKLOAD_SCORING = true;
+const workloadDebugByDay = new Map();
+let lastDebuggedWorkloadDay = "";
 const WORKLOAD_LEVELS = [
   { id: "minimal", label: "Minimal Load", min: 0, max: 3 },
   { id: "light", label: "Light Load", min: 4, max: 9 },
@@ -376,6 +378,8 @@ function bindEvents() {
 
   els.queueList.addEventListener("click", handleQueueClick);
   els.scheduleList.addEventListener("click", handleScheduleClick);
+  els.scheduleList.addEventListener("mouseover", handleScheduleHover);
+  els.scheduleList.addEventListener("focusin", handleScheduleHover);
   els.blockList.addEventListener("click", handleBlockClick);
   els.categoryList.addEventListener("click", handleCategoryClick);
   document.addEventListener("click", handleDocumentClick);
@@ -1634,6 +1638,8 @@ function renderSchedule() {
 }
 
 function renderMonthSchedule(range, allSegments, scheduled) {
+  workloadDebugByDay.clear();
+  lastDebuggedWorkloadDay = "";
   const totalMinutes = scheduled.reduce((sum, segment) => sum + segment.minutes, 0);
   const workText = scheduled.length
     ? `${scheduled.length} work block${scheduled.length === 1 ? "" : "s"} across ${formatDuration(totalMinutes)}`
@@ -1663,6 +1669,7 @@ function renderMonthSchedule(range, allSegments, scheduled) {
     const visibleItems = items.slice(0, 3);
     const hiddenCount = Math.max(0, items.length - visibleItems.length);
     const workload = calculateMonthDayWorkload(date, items);
+    workloadDebugByDay.set(key, workload.debug);
     const workMinutes = items
       .filter((segment) => segment.type === "task")
       .reduce((sum, segment) => sum + segment.minutes, 0);
@@ -1728,6 +1735,7 @@ function calculateMonthDayWorkload(date, items) {
   const scoredTaskIds = new Set();
   const scheduledTasks = [];
   const dueTasksCounted = [];
+  const followUpTasksCounted = [];
   const overdueTasksCounted = [];
   let score = 0;
 
@@ -1739,9 +1747,12 @@ function calculateMonthDayWorkload(date, items) {
   });
 
   uniqueScheduledTasks.forEach((segment, taskId) => {
-    score += getWorkloadTaskWeight(segment);
+    const task = state.tasks.find((item) => item.id === taskId) || segment;
+    const isScheduledOverdue = isTaskOverdueAsOfDay(task, day);
+    score += isScheduledOverdue ? OVERDUE_TASK_WEIGHT : getWorkloadTaskWeight(task);
     scoredTaskIds.add(taskId);
-    scheduledTasks.push(segment);
+    scheduledTasks.push({ ...task, scheduledDate: segment.start, includeReason: isScheduledOverdue ? "scheduled overdue task" : "scheduled task" });
+    if (isScheduledOverdue) overdueTasksCounted.push({ ...task, scheduledDate: segment.start, includeReason: "scheduled overdue task" });
   });
 
   const dueTasks = state.tasks.filter((task) => {
@@ -1753,46 +1764,39 @@ function calculateMonthDayWorkload(date, items) {
     if (scoredTaskIds.has(task.id)) return;
     score += getWorkloadTaskWeight(task);
     scoredTaskIds.add(task.id);
-    dueTasksCounted.push(task);
+    dueTasksCounted.push({ ...task, includeReason: "due on this date" });
+    if (!task.high_priority && isFollowUpTask(task)) followUpTasksCounted.push({ ...task, includeReason: "follow-up due on this date" });
   });
 
   const blockedItems = items.filter((segment) => segment.type === "blocked");
   score += blockedItems.length * MEETING_EVENT_WEIGHT;
 
-  const overdueTasks = state.tasks.filter((task) => isTaskOverdueAsOfDay(task, day));
-  overdueTasks.forEach((task) => {
-    if (scoredTaskIds.has(task.id)) return;
-    score += OVERDUE_TASK_WEIGHT;
-    scoredTaskIds.add(task.id);
-    overdueTasksCounted.push(task);
-  });
-
   const scoredTasks = [...scoredTaskIds]
     .map((taskId) => state.tasks.find((task) => task.id === taskId))
     .filter(Boolean);
   const highPriorityCount = scoredTasks.filter((task) => task.high_priority).length;
-  const followUpDueCount = dueTasksCounted.filter((task) => !task.high_priority && isFollowUpTask(task)).length;
-  const standardTaskCount = scoredTasks
-    .filter((task) => !task.high_priority && !isFollowUpTask(task))
-    .length;
+  const scheduledTaskCount = scheduledTasks.length;
+  const dueTaskCount = dueTasksCounted.filter((task) => !task.high_priority && !isFollowUpTask(task)).length;
   const categoryCounts = getWorkloadCategoryCounts(scoredTasks, blockedItems);
   const contributors = [
+    scheduledTaskCount ? { label: "Scheduled Tasks", value: scheduledTaskCount, points: scheduledTasks.reduce((sum, task) => sum + (isTaskOverdueAsOfDay(task, day) ? OVERDUE_TASK_WEIGHT : getWorkloadTaskWeight(task)), 0) } : null,
     highPriorityCount ? { label: "High Priority Tasks", value: highPriorityCount, points: highPriorityCount * HIGH_PRIORITY_WEIGHT } : null,
-    standardTaskCount ? { label: "Standard Tasks", value: standardTaskCount, points: standardTaskCount * STANDARD_PRIORITY_WEIGHT } : null,
-    followUpDueCount ? { label: "Follow-Ups Due", value: followUpDueCount, points: followUpDueCount * FOLLOW_UP_TASK_WEIGHT } : null,
+    dueTaskCount ? { label: "Tasks Due Today", value: dueTaskCount, points: dueTaskCount * STANDARD_PRIORITY_WEIGHT } : null,
+    followUpTasksCounted.length ? { label: "Follow-Ups Due", value: followUpTasksCounted.length, points: followUpTasksCounted.length * FOLLOW_UP_TASK_WEIGHT } : null,
     blockedItems.length ? { label: "Meetings / Events", value: blockedItems.length, points: blockedItems.length * MEETING_EVENT_WEIGHT } : null,
     overdueTasksCounted.length ? { label: "Overdue Tasks", value: overdueTasksCounted.length, points: overdueTasksCounted.length * OVERDUE_TASK_WEIGHT } : null,
   ].filter(Boolean);
   const level = getWorkloadLevel(score);
-  debugMonthWorkloadScore({
+  const debug = createMonthWorkloadDebug({
     date: day,
     scheduledTasks,
     dueTasks,
     dueTasksCounted,
-    overdueTasks,
+    followUpTasksCounted,
+    blockedItems,
     overdueTasksCounted,
     highPriorityCount,
-    followUpDueCount,
+    followUpCount: followUpTasksCounted.length,
     meetingCount: blockedItems.length,
     score,
     level,
@@ -1803,7 +1807,8 @@ function calculateMonthDayWorkload(date, items) {
     level,
     contributors,
     categories: categoryCounts,
-    hasPopover: score > WORKLOAD_LEVELS[0].max && contributors.length > 0,
+    debug,
+    hasPopover: contributors.length > 0,
     tooltip: `Workload Score: ${score}\n${level.label}\n${contributors.map((item) => `${item.value} ${item.label}`).join("\n")}`,
   };
 }
@@ -1824,22 +1829,50 @@ function isTaskOverdueAsOfDay(task, day) {
   return startOfDay(due) < day;
 }
 
-function debugMonthWorkloadScore(details) {
-  if (!DEBUG_WORKLOAD_SCORING) return;
-  const toTaskLabels = (tasks) => tasks.map((task) => `${task.title || "Untitled"} (${formatShortDate(getTaskDueDate(task) || details.date)})`);
-  console.debug("[Corvus workload score]", {
+function createMonthWorkloadDebug(details) {
+  return {
     date: formatDayKey(details.date),
-    scheduledTasks: toTaskLabels(details.scheduledTasks),
-    tasksDueThatDay: toTaskLabels(details.dueTasks),
-    dueTasksCounted: toTaskLabels(details.dueTasksCounted),
-    overdueAsOfDay: toTaskLabels(details.overdueTasks),
-    overdueTasksCounted: toTaskLabels(details.overdueTasksCounted),
+    scheduledTasksIncluded: details.scheduledTasks.map((task) => formatWorkloadDebugTask(task, details.date, task.includeReason || "scheduled task")),
+    dueTasksIncluded: details.dueTasksCounted.map((task) => formatWorkloadDebugTask(task, details.date, task.includeReason || "due on this date")),
+    allTasksDueThisDate: details.dueTasks.map((task) => formatWorkloadDebugTask(task, details.date, "due on this date")),
+    meetingsEventsIncluded: details.blockedItems.map((item) => ({
+      id: item.id || item.seriesId || "",
+      title: item.title || "Unavailable",
+      scheduledDate: item.start ? formatDayKey(new Date(item.start)) : "",
+      reasonIncluded: "meeting/event on this date",
+    })),
+    followUpsIncluded: details.followUpTasksCounted.map((task) => formatWorkloadDebugTask(task, details.date, task.includeReason || "follow-up due on this date")),
+    overdueTasksIncluded: details.overdueTasksCounted.map((task) => formatWorkloadDebugTask(task, details.date, task.includeReason || "scheduled overdue task")),
     highPriorityTaskCount: details.highPriorityCount,
-    followUpCount: details.followUpDueCount,
+    followUpCount: details.followUpCount,
     meetingEventCount: details.meetingCount,
     finalWorkloadScore: details.score,
     assignedWorkloadLevel: details.level.label,
-  });
+  };
+}
+
+function formatWorkloadDebugTask(task, selectedDate, reason) {
+  const due = getTaskDueDate(task);
+  const scheduled = task.scheduledDate ? new Date(task.scheduledDate) : null;
+  return {
+    id: task.id || task.taskId || "",
+    title: task.title || "Untitled",
+    dueDate: due ? formatDayKey(due) : "",
+    scheduledDate: scheduled && Number.isFinite(scheduled.getTime()) ? formatDayKey(scheduled) : "",
+    complete: Boolean(task.complete),
+    highPriority: Boolean(task.high_priority),
+    reasonIncluded: reason,
+    selectedDate: formatDayKey(selectedDate),
+  };
+}
+
+function debugMonthWorkloadScore(dayKey, force = false) {
+  if (!DEBUG_WORKLOAD_SCORING) return;
+  if (!force && lastDebuggedWorkloadDay === dayKey) return;
+  const debug = workloadDebugByDay.get(dayKey);
+  if (!debug) return;
+  lastDebuggedWorkloadDay = dayKey;
+  console.debug("[Corvus workload score]", debug);
 }
 
 function renderWorkloadLegend() {
@@ -2190,9 +2223,16 @@ function handleScheduleClick(event) {
   const day = event.target.closest("[data-workload-popover]");
   if (!day || !els.scheduleList.contains(day)) return;
   event.stopPropagation();
+  debugMonthWorkloadScore(day.dataset.day, true);
   const isOpen = day.classList.contains("popover-open");
   closeWorkloadPopovers(day);
   day.classList.toggle("popover-open", !isOpen);
+}
+
+function handleScheduleHover(event) {
+  const day = event.target.closest("[data-workload-popover]");
+  if (!day || !els.scheduleList.contains(day)) return;
+  debugMonthWorkloadScore(day.dataset.day);
 }
 
 function handleDocumentClick(event) {
