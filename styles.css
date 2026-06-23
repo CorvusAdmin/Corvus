@@ -1822,9 +1822,10 @@ body.preferences-open {
 }
 
 .month-day {
+  --workload-rgb: 127, 212, 198;
   --workload-alpha: 0;
   --workload-edge: rgba(42, 52, 48, 0.92);
-  --workload-glow: rgba(127, 212, 198, 0);
+  --workload-glow: rgba(var(--workload-rgb), 0);
   position: relative;
   min-width: 0;
   min-height: 118px;
@@ -1835,8 +1836,8 @@ body.preferences-open {
   border: 1px solid var(--workload-edge);
   border-radius: 7px;
   background:
-    linear-gradient(145deg, rgba(127, 212, 198, calc(var(--workload-alpha) * 0.95)), rgba(127, 212, 198, calc(var(--workload-alpha) * 0.28)) 46%, transparent 82%),
-    radial-gradient(circle at 82% 18%, rgba(184, 238, 228, calc(var(--workload-alpha) * 0.85)), transparent 46%),
+    linear-gradient(145deg, rgba(var(--workload-rgb), calc(var(--workload-alpha) * 0.95)), rgba(var(--workload-rgb), calc(var(--workload-alpha) * 0.28)) 46%, transparent 82%),
+    radial-gradient(circle at 82% 18%, rgba(var(--workload-rgb), calc(var(--workload-alpha) * 0.72)), transparent 46%),
     rgba(19, 24, 23, 0.82);
   box-shadow: inset 0 0 0 1px rgba(236, 241, 235, 0.025), inset 0 0 28px var(--workload-glow);
   padding: 8px;
@@ -1848,41 +1849,45 @@ body.preferences-open {
 
 .month-day.has-items {
   background:
-    linear-gradient(145deg, rgba(127, 212, 198, calc(var(--workload-alpha) * 0.95)), rgba(127, 212, 198, calc(var(--workload-alpha) * 0.28)) 46%, transparent 82%),
-    radial-gradient(circle at 82% 18%, rgba(184, 238, 228, calc(var(--workload-alpha) * 0.85)), transparent 46%),
+    linear-gradient(145deg, rgba(var(--workload-rgb), calc(var(--workload-alpha) * 0.95)), rgba(var(--workload-rgb), calc(var(--workload-alpha) * 0.28)) 46%, transparent 82%),
+    radial-gradient(circle at 82% 18%, rgba(var(--workload-rgb), calc(var(--workload-alpha) * 0.72)), transparent 46%),
     rgba(23, 29, 27, 0.94);
 }
 
 .month-day.workload-light {
-  --workload-alpha: 0.16;
-  --workload-edge: rgba(127, 212, 198, 0.28);
-  --workload-glow: rgba(127, 212, 198, 0.06);
+  --workload-rgb: 138, 191, 157;
+  --workload-alpha: 0.18;
+  --workload-edge: rgba(138, 191, 157, 0.30);
+  --workload-glow: rgba(138, 191, 157, 0.07);
 }
 
 .month-day.workload-moderate {
-  --workload-alpha: 0.27;
-  --workload-edge: rgba(127, 212, 198, 0.40);
-  --workload-glow: rgba(127, 212, 198, 0.10);
+  --workload-rgb: 127, 212, 198;
+  --workload-alpha: 0.28;
+  --workload-edge: rgba(127, 212, 198, 0.42);
+  --workload-glow: rgba(127, 212, 198, 0.12);
 }
 
 .month-day.workload-heavy {
-  --workload-alpha: 0.39;
-  --workload-edge: rgba(127, 212, 198, 0.54);
-  --workload-glow: rgba(127, 212, 198, 0.16);
+  --workload-rgb: 103, 169, 191;
+  --workload-alpha: 0.42;
+  --workload-edge: rgba(103, 169, 191, 0.58);
+  --workload-glow: rgba(103, 169, 191, 0.18);
 }
 
 .month-day.workload-critical {
-  --workload-alpha: 0.58;
-  --workload-edge: rgba(184, 238, 228, 0.76);
-  --workload-glow: rgba(127, 212, 198, 0.24);
-  box-shadow: inset 0 0 0 1px rgba(184, 238, 228, 0.16), inset 0 0 34px rgba(127, 212, 198, 0.24), 0 0 24px rgba(127, 212, 198, 0.10);
+  --workload-rgb: 143, 166, 217;
+  --workload-alpha: 0.54;
+  --workload-edge: rgba(143, 166, 217, 0.72);
+  --workload-glow: rgba(143, 166, 217, 0.25);
+  box-shadow: inset 0 0 0 1px rgba(184, 238, 228, 0.10), inset 0 0 34px rgba(143, 166, 217, 0.24), 0 0 24px rgba(143, 166, 217, 0.10);
 }
 
 .month-day.outside-month {
   opacity: 0.48;
   background:
-    linear-gradient(145deg, rgba(127, 212, 198, calc(var(--workload-alpha) * 0.95)), rgba(127, 212, 198, calc(var(--workload-alpha) * 0.28)) 46%, transparent 82%),
-    radial-gradient(circle at 82% 18%, rgba(184, 238, 228, calc(var(--workload-alpha) * 0.85)), transparent 46%),
+    linear-gradient(145deg, rgba(var(--workload-rgb), calc(var(--workload-alpha) * 0.95)), rgba(var(--workload-rgb), calc(var(--workload-alpha) * 0.28)) 46%, transparent 82%),
+    radial-gradient(circle at 82% 18%, rgba(var(--workload-rgb), calc(var(--workload-alpha) * 0.72)), transparent 46%),
     rgba(19, 24, 23, 0.46);
 }
 
@@ -2057,6 +2062,80 @@ body.preferences-open {
   font-size: 0.70rem;
   font-weight: 800;
   padding: 4px 7px;
+}
+
+.workload-legend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(236, 241, 235, 0.07);
+  border-radius: var(--radius);
+  background: rgba(19, 24, 23, 0.62);
+  box-shadow: inset 0 1px 0 rgba(236, 241, 235, 0.03);
+  padding: 9px 10px;
+}
+
+.workload-legend-title {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 0.70rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.workload-legend-items {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.workload-legend-item {
+  --legend-rgb: 127, 212, 198;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(218, 227, 222, 0.82);
+  font-size: 0.70rem;
+  font-weight: 800;
+}
+
+.workload-legend-item.workload-minimal {
+  --legend-rgb: 98, 113, 106;
+}
+
+.workload-legend-item.workload-light {
+  --legend-rgb: 138, 191, 157;
+}
+
+.workload-legend-item.workload-moderate {
+  --legend-rgb: 127, 212, 198;
+}
+
+.workload-legend-item.workload-heavy {
+  --legend-rgb: 103, 169, 191;
+}
+
+.workload-legend-item.workload-critical {
+  --legend-rgb: 143, 166, 217;
+}
+
+.workload-legend-swatch {
+  width: 15px;
+  height: 9px;
+  border: 1px solid rgba(var(--legend-rgb), 0.52);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(var(--legend-rgb), 0.42), rgba(var(--legend-rgb), 0.12));
+  box-shadow: inset 0 0 8px rgba(var(--legend-rgb), 0.12);
+}
+
+.workload-legend-item strong {
+  color: rgba(152, 166, 159, 0.88);
+  font-size: 0.66rem;
+  font-weight: 900;
 }
 
 .month-calendar-item {
@@ -2890,6 +2969,15 @@ body.preferences-open {
     min-height: 20px;
     font-size: 0.68rem;
     padding: 3px 4px;
+  }
+
+  .workload-legend {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workload-legend-items {
+    justify-content: flex-start;
   }
 
   .workload-popover {

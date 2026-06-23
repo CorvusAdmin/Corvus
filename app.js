@@ -11,10 +11,10 @@ const MEETING_EVENT_WEIGHT = 1;
 const OVERDUE_TASK_WEIGHT = 4;
 const WORKLOAD_LEVELS = [
   { id: "minimal", label: "Minimal Load", min: 0, max: 3 },
-  { id: "light", label: "Light Load", min: 4, max: 7 },
-  { id: "moderate", label: "Moderate Load", min: 8, max: 12 },
-  { id: "heavy", label: "Heavy Load", min: 13, max: 18 },
-  { id: "critical", label: "Critical Load", min: 19, max: Infinity },
+  { id: "light", label: "Light Load", min: 4, max: 9 },
+  { id: "moderate", label: "Moderate Load", min: 10, max: 19 },
+  { id: "heavy", label: "Heavy Load", min: 20, max: 34 },
+  { id: "critical", label: "Peak Load", min: 35, max: Infinity },
 ];
 const LOGIN_FEATHER_ASSET = "/corvus-feather-spirit.png";
 const LOGIN_RAVEN_ASSET = "/corvus-raven-spirit.png";
@@ -1697,6 +1697,7 @@ function renderMonthSchedule(range, allSegments, scheduled) {
   }
 
   calendar.append(grid);
+  calendar.insertAdjacentHTML("beforeend", renderWorkloadLegend());
   els.scheduleList.append(calendar);
 }
 
@@ -1788,6 +1789,26 @@ function calculateMonthDayWorkload(date, items) {
 
 function getWorkloadLevel(score) {
   return WORKLOAD_LEVELS.find((level) => score >= level.min && score <= level.max) || WORKLOAD_LEVELS[0];
+}
+
+function renderWorkloadLegend() {
+  const legendItems = WORKLOAD_LEVELS.map((level) => {
+    const range = level.max === Infinity ? `${level.min}+` : `${level.min}-${level.max}`;
+    return `
+      <span class="workload-legend-item workload-${level.id}">
+        <span class="workload-legend-swatch" aria-hidden="true"></span>
+        <span>${escapeHtml(level.label)}</span>
+        <strong>${range}</strong>
+      </span>
+    `;
+  }).join("");
+
+  return `
+    <div class="workload-legend" aria-label="Workload heat map key">
+      <span class="workload-legend-title">Workload key</span>
+      <div class="workload-legend-items">${legendItems}</div>
+    </div>
+  `;
 }
 
 function renderWorkloadPopover(key, workload) {
