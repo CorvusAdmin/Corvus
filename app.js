@@ -9,6 +9,7 @@ const STANDARD_PRIORITY_WEIGHT = 1;
 const FOLLOW_UP_TASK_WEIGHT = 2;
 const MEETING_EVENT_WEIGHT = 1;
 const OVERDUE_TASK_WEIGHT = 4;
+const DEBUG_WORKLOAD_SCORING = true;
 const WORKLOAD_LEVELS = [
   { id: "minimal", label: "Minimal Load", min: 0, max: 3 },
   { id: "light", label: "Light Load", min: 4, max: 9 },
@@ -1724,8 +1725,10 @@ function renderMonthScheduleItem(segment) {
 
 function calculateMonthDayWorkload(date, items) {
   const day = startOfDay(date);
-  const today = startOfDay(new Date());
   const scoredTaskIds = new Set();
+  const scheduledTasks = [];
+  const dueTasksCounted = [];
+  const overdueTasksCounted = [];
   let score = 0;
 
   const taskSegments = items.filter((segment) => segment.type === "task");
@@ -1738,32 +1741,37 @@ function calculateMonthDayWorkload(date, items) {
   uniqueScheduledTasks.forEach((segment, taskId) => {
     score += getWorkloadTaskWeight(segment);
     scoredTaskIds.add(taskId);
+    scheduledTasks.push(segment);
   });
 
-  const dueTasks = state.tasks.filter((task) => !task.complete && isSameDay(new Date(task.due), day));
+  const dueTasks = state.tasks.filter((task) => {
+    if (task.complete) return false;
+    const due = getTaskDueDate(task);
+    return due && isSameDay(due, day);
+  });
   dueTasks.forEach((task) => {
     if (scoredTaskIds.has(task.id)) return;
     score += getWorkloadTaskWeight(task);
     scoredTaskIds.add(task.id);
+    dueTasksCounted.push(task);
   });
 
   const blockedItems = items.filter((segment) => segment.type === "blocked");
   score += blockedItems.length * MEETING_EVENT_WEIGHT;
 
-  const overdueTasks = day >= today
-    ? state.tasks.filter((task) => !task.complete && startOfDay(new Date(task.due)) < day)
-    : [];
+  const overdueTasks = state.tasks.filter((task) => isTaskOverdueAsOfDay(task, day));
   overdueTasks.forEach((task) => {
     if (scoredTaskIds.has(task.id)) return;
     score += OVERDUE_TASK_WEIGHT;
     scoredTaskIds.add(task.id);
+    overdueTasksCounted.push(task);
   });
 
   const scoredTasks = [...scoredTaskIds]
     .map((taskId) => state.tasks.find((task) => task.id === taskId))
     .filter(Boolean);
   const highPriorityCount = scoredTasks.filter((task) => task.high_priority).length;
-  const followUpDueCount = dueTasks.filter(isFollowUpTask).length;
+  const followUpDueCount = dueTasksCounted.filter((task) => !task.high_priority && isFollowUpTask(task)).length;
   const standardTaskCount = scoredTasks
     .filter((task) => !task.high_priority && !isFollowUpTask(task))
     .length;
@@ -1773,9 +1781,22 @@ function calculateMonthDayWorkload(date, items) {
     standardTaskCount ? { label: "Standard Tasks", value: standardTaskCount, points: standardTaskCount * STANDARD_PRIORITY_WEIGHT } : null,
     followUpDueCount ? { label: "Follow-Ups Due", value: followUpDueCount, points: followUpDueCount * FOLLOW_UP_TASK_WEIGHT } : null,
     blockedItems.length ? { label: "Meetings / Events", value: blockedItems.length, points: blockedItems.length * MEETING_EVENT_WEIGHT } : null,
-    overdueTasks.length ? { label: "Overdue Tasks", value: overdueTasks.length, points: overdueTasks.length * OVERDUE_TASK_WEIGHT } : null,
+    overdueTasksCounted.length ? { label: "Overdue Tasks", value: overdueTasksCounted.length, points: overdueTasksCounted.length * OVERDUE_TASK_WEIGHT } : null,
   ].filter(Boolean);
   const level = getWorkloadLevel(score);
+  debugMonthWorkloadScore({
+    date: day,
+    scheduledTasks,
+    dueTasks,
+    dueTasksCounted,
+    overdueTasks,
+    overdueTasksCounted,
+    highPriorityCount,
+    followUpDueCount,
+    meetingCount: blockedItems.length,
+    score,
+    level,
+  });
 
   return {
     score,
@@ -1789,6 +1810,36 @@ function calculateMonthDayWorkload(date, items) {
 
 function getWorkloadLevel(score) {
   return WORKLOAD_LEVELS.find((level) => score >= level.min && score <= level.max) || WORKLOAD_LEVELS[0];
+}
+
+function getTaskDueDate(task) {
+  const due = new Date(task?.due);
+  return Number.isFinite(due.getTime()) ? due : null;
+}
+
+function isTaskOverdueAsOfDay(task, day) {
+  if (task?.complete) return false;
+  const due = getTaskDueDate(task);
+  if (!due) return false;
+  return startOfDay(due) < day;
+}
+
+function debugMonthWorkloadScore(details) {
+  if (!DEBUG_WORKLOAD_SCORING) return;
+  const toTaskLabels = (tasks) => tasks.map((task) => `${task.title || "Untitled"} (${formatShortDate(getTaskDueDate(task) || details.date)})`);
+  console.debug("[Corvus workload score]", {
+    date: formatDayKey(details.date),
+    scheduledTasks: toTaskLabels(details.scheduledTasks),
+    tasksDueThatDay: toTaskLabels(details.dueTasks),
+    dueTasksCounted: toTaskLabels(details.dueTasksCounted),
+    overdueAsOfDay: toTaskLabels(details.overdueTasks),
+    overdueTasksCounted: toTaskLabels(details.overdueTasksCounted),
+    highPriorityTaskCount: details.highPriorityCount,
+    followUpCount: details.followUpDueCount,
+    meetingEventCount: details.meetingCount,
+    finalWorkloadScore: details.score,
+    assignedWorkloadLevel: details.level.label,
+  });
 }
 
 function renderWorkloadLegend() {
